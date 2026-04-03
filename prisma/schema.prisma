@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MarkerType {
+  STATIC
+  AUTO
+  AB
+}
+
+enum JobType {
+  TRANSCRIBE
+  WAVEFORM
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum MuxAssetStatus {
+  PENDING
+  PREPARING
+  READY
+  ERRORED
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  type        JobType
+  status      JobStatus @default(QUEUED)
+  episodeId   String
+  episode     Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  progress    Int       @default(0)
+  error       String?
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Marker {
+  id        String     @id @default(cuid())
+  episodeId String
+  episode   Episode    @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  timeSec   Float
+  type      MarkerType
+  label     String?
+  ads       MarkerAd[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model TranscriptSegment {
+  id         String  @id @default(cuid())
+  episodeId  String
+  episode    Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  startTime  Float
+  endTime    Float
+  text       String
+  confidence Float   @default(1.0)
+
+  @@index([episodeId, startTime])
+}
+
+model Episode {
+  id            String              @id @default(cuid())
+  title         String
+  sourceUrl     String // Supabase storage
+  duration      Float
+  muxAssetId    String? // id of the asset on mux
+  muxPlaybackId String? // Mux playback ID
+  muxStatus     MuxAssetStatus      @default(PENDING)
+  waveformUrl   String? // Waveform data Supabase
+  markers       Marker[]
+  jobs          Job[]
+  transcripts   TranscriptSegment[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model Ad {
+  id        String     @id @default(cuid())
+  title     String
+  videoUrl  String // Ad video in SS
+  duration  Float
+  markers   MarkerAd[]
+  createdAt DateTime   @default(now())
+}
+
+model MarkerAd {
+  id        String @id @default(cuid())
+  markerId  String
+  marker    Marker @relation(fields: [markerId], references: [id], onDelete: Cascade)
+  adId      String
+  ad        Ad     @relation(fields: [adId], references: [id], onDelete: Cascade)
+  playCount Int    @default(0)
+
+  @@unique([markerId, adId])
+}
