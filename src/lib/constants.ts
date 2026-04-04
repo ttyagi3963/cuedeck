@@ -5,7 +5,6 @@ import {
   MonitorPlay,
   Download,
   Settings,
-  PlayCircle,
   MailPlus,
   Lightbulb,
   HelpCircle,
@@ -43,7 +42,6 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
 ];
 
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
-  { label: "Demo mode", icon: PlayCircle, href: ROUTES.demo },
   { label: "Invite your team", icon: MailPlus, href: ROUTES.invite },
   { label: "Give feedback", icon: Lightbulb, href: ROUTES.feedback },
   { label: "Help & support", icon: HelpCircle, href: ROUTES.help },

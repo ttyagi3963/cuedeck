@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(find /c/Users/tarun/Documents/EXAMS/cuedeck -name *.css -o -name *.scss -o -name tailwind.config.*)",
-      "Bash(find /c/Users/tarun/Documents/EXAMS/cuedeck/prisma -type f -name *.ts -o -name *.sql)"
+      "Bash(find /c/Users/tarun/Documents/EXAMS/cuedeck/prisma -type f -name *.ts -o -name *.sql)",
+      "mcp__mcp-registry__search_mcp_registry"
     ]
   }
 }

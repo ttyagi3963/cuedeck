@@ -2,11 +2,13 @@
 :root {
   --cd-color-zinc-50: #fafafa;
   --cd-color-zinc-200: #e4e4e7;
+  --cd-color-zinc-300: #d4d4d8;
   --cd-color-zinc-500: #71717a;
   --cd-color-zinc-800: #27272a;
   --cd-color-zinc-900: #18181b;
   --cd-color-white: #ffffff;
   --cd-color-red-500: #ef4444;
+  --cd-color-green-600: #16a34a;
 
   --cd-font-size-sm: 14px;
   --cd-font-size-base: 16px;
@@ -21,6 +23,7 @@
   --cd-font-weight-medium: 500;
   --cd-font-weight-semibold: 600;
   --cd-font-weight-bold: 700;
+  --cd-font-weight-extrabold: 800;
 
   --cd-spacing-1: 4px;
   --cd-spacing-2: 8px;
@@ -33,9 +36,11 @@
   --cd-radius-sm: 3px;
   --cd-radius-md: 6px;
   --cd-radius-lg: 8px;
+  --cd-radius-xl: 16px;
 
   --cd-sidebar-width: 320px;
   --cd-nav-height: 80px;
+  --cd-layout-max-width: 1680px;
 
   --cd-button-primary-padding-y: 12px;
   --cd-button-primary-padding-x: 16px;

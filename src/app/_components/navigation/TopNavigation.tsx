@@ -1,13 +1,14 @@
 import { Settings, Bell, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
+import Logo from "../ui/Logo";
 
 export default function TopNavigation() {
   return (
     <nav className="border-b border-border-default bg-surface">
       <div className="flex h-nav-height items-center justify-between px-8">
         <div className="flex items-center gap-3">
-          <span className="text-lg font-bold text-text-heading">Vidpod</span>
+          <Logo />
         </div>
 
         <div className="flex items-center gap-6">

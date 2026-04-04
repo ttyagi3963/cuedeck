@@ -7,10 +7,13 @@
   --color-text-on-primary: var(--cd-color-white);
   --color-notification-badge: var(--cd-color-red-500);
   --color-surface: var(--cd-color-white);
+  --color-trend-positive: var(--cd-color-green-600);
+  --color-border-subtle: var(--cd-color-zinc-300);
 
   --radius-sm: var(--cd-radius-sm);
   --radius-md: var(--cd-radius-md);
   --radius-lg: var(--cd-radius-lg);
+  --radius-xl: var(--cd-radius-xl);
 
   --font-size-sm: var(--cd-font-size-sm);
   --font-size-base: var(--cd-font-size-base);
@@ -20,10 +23,13 @@
   --font-weight-medium: var(--cd-font-weight-medium);
   --font-weight-semibold: var(--cd-font-weight-semibold);
   --font-weight-bold: var(--cd-font-weight-bold);
+  --font-weight-extrabold: var(--cd-font-weight-extrabold);
 
   --sidebar-width: var(--cd-sidebar-width);
   --sidebar-padding: var(--cd-spacing-8);
+  --layout-columns: var(--cd-sidebar-width) 1fr;
   --spacing-nav-height: var(--cd-nav-height);
+  --layout-max-width: var(--cd-layout-max-width);
 
   --page-padding: var(--cd-spacing-16);
   --page-gap: var(--cd-spacing-8);
