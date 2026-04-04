@@ -1,0 +1,30 @@
+/* src/styles/tokens/primitives.css */
+:root {
+  --color-zinc-50: #fafafa;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-500: #71717a;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+
+  --font-size-base: 16px;
+  --font-size-3xl: 30px;
+
+  --line-height-base: 24px;
+  --line-height-3xl: 36px;
+
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-16: 64px;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+
+  --border-width-default: 1px;
+}

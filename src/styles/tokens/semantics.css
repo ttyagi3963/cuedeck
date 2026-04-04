@@ -1,0 +1,22 @@
+:root {
+  --color-background-page: var(--color-zinc-50);
+  --color-background-primary: var(--color-zinc-900);
+  --color-text-heading: var(--color-zinc-800);
+  --color-text-muted: var(--color-zinc-500);
+  --color-border-default: var(--color-zinc-200);
+  --color-text-on-primary: #ffffff;
+
+  --sidebar-width: 320px;
+  --sidebar-padding: var(--spacing-8);
+
+  --page-padding: var(--spacing-16);
+  --page-gap: var(--spacing-8);
+  --content-gap-sm: var(--spacing-4);
+  --content-gap-lg: var(--spacing-8);
+
+  --button-primary-radius: var(--radius-md);
+  --button-primary-padding-y: 12px;
+  --button-primary-padding-x: 16px;
+  --button-primary-gap: var(--spacing-2);
+  --button-primary-height: 44px;
+}
