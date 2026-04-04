@@ -1,22 +1,38 @@
-:root {
-  --color-background-page: var(--color-zinc-50);
-  --color-background-primary: var(--color-zinc-900);
-  --color-text-heading: var(--color-zinc-800);
-  --color-text-muted: var(--color-zinc-500);
-  --color-border-default: var(--color-zinc-200);
-  --color-text-on-primary: #ffffff;
+@theme {
+  --color-background-page: var(--cd-color-zinc-50);
+  --color-background-primary: var(--cd-color-zinc-900);
+  --color-text-heading: var(--cd-color-zinc-800);
+  --color-text-muted: var(--cd-color-zinc-500);
+  --color-border-default: var(--cd-color-zinc-200);
+  --color-text-on-primary: var(--cd-color-white);
+  --color-notification-badge: var(--cd-color-red-500);
+  --color-surface: var(--cd-color-white);
 
-  --sidebar-width: 320px;
-  --sidebar-padding: var(--spacing-8);
+  --radius-sm: var(--cd-radius-sm);
+  --radius-md: var(--cd-radius-md);
+  --radius-lg: var(--cd-radius-lg);
 
-  --page-padding: var(--spacing-16);
-  --page-gap: var(--spacing-8);
-  --content-gap-sm: var(--spacing-4);
-  --content-gap-lg: var(--spacing-8);
+  --font-size-sm: var(--cd-font-size-sm);
+  --font-size-base: var(--cd-font-size-base);
+  --font-size-lg: var(--cd-font-size-lg);
+  --font-size-3xl: var(--cd-font-size-3xl);
 
-  --button-primary-radius: var(--radius-md);
-  --button-primary-padding-y: 12px;
-  --button-primary-padding-x: 16px;
-  --button-primary-gap: var(--spacing-2);
-  --button-primary-height: 44px;
+  --font-weight-medium: var(--cd-font-weight-medium);
+  --font-weight-semibold: var(--cd-font-weight-semibold);
+  --font-weight-bold: var(--cd-font-weight-bold);
+
+  --sidebar-width: var(--cd-sidebar-width);
+  --sidebar-padding: var(--cd-spacing-8);
+  --spacing-nav-height: var(--cd-nav-height);
+
+  --page-padding: var(--cd-spacing-16);
+  --page-gap: var(--cd-spacing-8);
+  --content-gap-sm: var(--cd-spacing-4);
+  --content-gap-lg: var(--cd-spacing-8);
+
+  --button-primary-radius: var(--cd-radius-md);
+  --button-primary-padding-y: var(--cd-button-primary-padding-y);
+  --button-primary-padding-x: var(--cd-button-primary-padding-x);
+  --button-primary-gap: var(--cd-spacing-2);
+  --button-primary-height: var(--cd-button-primary-height);
 }

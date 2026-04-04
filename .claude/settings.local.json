@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/tarun/Documents/EXAMS/cuedeck -name *.css -o -name *.scss -o -name tailwind.config.*)",
+      "Bash(find /c/Users/tarun/Documents/EXAMS/cuedeck/prisma -type f -name *.ts -o -name *.sql)"
+    ]
+  }
+}

@@ -1,30 +1,45 @@
 /* src/styles/tokens/primitives.css */
 :root {
-  --color-zinc-50: #fafafa;
-  --color-zinc-200: #e4e4e7;
-  --color-zinc-500: #71717a;
-  --color-zinc-800: #27272a;
-  --color-zinc-900: #18181b;
+  --cd-color-zinc-50: #fafafa;
+  --cd-color-zinc-200: #e4e4e7;
+  --cd-color-zinc-500: #71717a;
+  --cd-color-zinc-800: #27272a;
+  --cd-color-zinc-900: #18181b;
+  --cd-color-white: #ffffff;
+  --cd-color-red-500: #ef4444;
 
-  --font-size-base: 16px;
-  --font-size-3xl: 30px;
+  --cd-font-size-sm: 14px;
+  --cd-font-size-base: 16px;
+  --cd-font-size-lg: 24px;
+  --cd-font-size-3xl: 30px;
 
-  --line-height-base: 24px;
-  --line-height-3xl: 36px;
+  --cd-line-height-sm: 20px;
+  --cd-line-height-base: 24px;
+  --cd-line-height-lg: 32px;
+  --cd-line-height-3xl: 36px;
 
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+  --cd-font-weight-medium: 500;
+  --cd-font-weight-semibold: 600;
+  --cd-font-weight-bold: 700;
 
-  --spacing-1: 4px;
-  --spacing-2: 8px;
-  --spacing-3: 12px;
-  --spacing-4: 16px;
-  --spacing-6: 24px;
-  --spacing-8: 32px;
-  --spacing-16: 64px;
+  --cd-spacing-1: 4px;
+  --cd-spacing-2: 8px;
+  --cd-spacing-3: 12px;
+  --cd-spacing-4: 16px;
+  --cd-spacing-6: 24px;
+  --cd-spacing-8: 32px;
+  --cd-spacing-16: 64px;
 
-  --radius-sm: 3px;
-  --radius-md: 6px;
+  --cd-radius-sm: 3px;
+  --cd-radius-md: 6px;
+  --cd-radius-lg: 8px;
 
-  --border-width-default: 1px;
+  --cd-sidebar-width: 320px;
+  --cd-nav-height: 80px;
+
+  --cd-button-primary-padding-y: 12px;
+  --cd-button-primary-padding-x: 16px;
+  --cd-button-primary-height: 44px;
+
+  --cd-border-width-default: 1px;
 }
