@@ -24,7 +24,7 @@ async function main() {
     data: {
       title:
         "The Longevity Expert: The Truth About Ozempic, The Magic Weight Loss Drug & The Link Between Milk & Cancer!",
-      sourceUrl: "/videos/episode1.MP4",
+      sourceUrl: "/videos/episodes/episode1.MP4",
       duration: 634,
       muxStatus: "PENDING",
     },
@@ -34,7 +34,7 @@ async function main() {
     data: {
       title:
         "Deep Sleep Secrets: What Neuroscience Actually Says About Rest & Recovery",
-      sourceUrl: "/videos/episode2.mp4",
+      sourceUrl: "/videos/episodes/episode2.mp4",
       duration: 596,
       muxStatus: "PENDING",
     },

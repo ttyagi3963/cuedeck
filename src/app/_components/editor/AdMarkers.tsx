@@ -1,7 +1,42 @@
 "use client";
 
-export default function AdMarkers() {
+import type { Marker } from "@/contracts/marker";
+import Button from "@/app/_components/ui/Button";
+import { Plus, MagicWand } from "@/app/_components/ui/icons";
+import MarkerList from "./MarkerList";
+
+type AdMarkersProps = {
+  markers: Marker[];
+  onCreateMarker: () => void;
+  onDeleteMarker: (markerId: string) => void;
+};
+
+export default function AdMarkers({
+  markers,
+  onCreateMarker,
+  onDeleteMarker,
+}: AdMarkersProps) {
   return (
-    <div className="flex w-[412px] shrink-0 flex-col gap-4 rounded-xl border border-border-default bg-surface p-8" />
+    <div className="flex w-ad-markers-width shrink-0 flex-col rounded-ad-markers border border-border-default bg-surface">
+      {/* Header */}
+      <div className="flex items-center justify-between px-ad-markers-padding pt-ad-markers-padding pb-content-gap-sm">
+        <h2 className="text-base font-bold text-text-heading">Ad markers</h2>
+        <span className="text-sm text-text-muted">
+          {markers.length} {markers.length === 1 ? "marker" : "markers"}
+        </span>
+      </div>
+
+      <MarkerList markers={markers} onDeleteMarker={onDeleteMarker} />
+
+      {/* Actions */}
+      <div className="flex flex-col gap-ad-markers-actions-gap px-ad-markers-padding pt-content-gap-sm pb-ad-markers-padding">
+        <Button variant="primary" className="w-full" onClick={onCreateMarker}>
+          Create ad marker <Plus />
+        </Button>
+        <Button variant="outline" className="w-full">
+          Automatically place <MagicWand />
+        </Button>
+      </div>
+    </div>
   );
 }

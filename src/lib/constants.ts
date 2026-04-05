@@ -9,12 +9,13 @@ import {
   Lightbulb,
   HelpCircle,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+
+import type { NavItem } from "@/contracts/navigation";
 
 export const ROUTES = {
-  dashboard: "/dashboard",
+  dashboard: "/",
   analytics: "/analytics",
-  ads: "/",
+  ads: "/ads",
   channels: "/channels",
   import: "/import",
   settings: "/settings",
@@ -25,12 +26,6 @@ export const ROUTES = {
   feedback: "/feedback",
   help: "/help",
 } as const;
-
-export interface NavItem {
-  label: string;
-  icon: LucideIcon;
-  href: string;
-}
 
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: ROUTES.dashboard },

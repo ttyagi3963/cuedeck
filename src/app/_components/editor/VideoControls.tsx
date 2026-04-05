@@ -19,6 +19,10 @@ type VideoControlsProps = {
   skip: (seconds: number) => void;
   jumpToStart: () => void;
   jumpToEnd: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 };
 
 export default function VideoControls({
@@ -27,22 +31,50 @@ export default function VideoControls({
   skip,
   jumpToStart,
   jumpToEnd,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: VideoControlsProps) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface p-4 [&_*]:cursor-pointer">
-      {/* Jump to start */}
-      <Button
-        variant="ghost"
-        onClick={jumpToStart}
-        className="flex items-center gap-2"
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle">
-          <SkipToStart className="text-text-heading" />
-        </span>
-        <span className="text-sm font-semibold text-text-muted">
-          Jump to start
-        </span>
-      </Button>
+      {/* Left: undo/redo + jump to start */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            onClick={onUndo}
+            disabled={!canUndo}
+            aria-label="Undo"
+            className="text-sm font-semibold text-text-muted disabled:opacity-40"
+          >
+            Undo
+          </Button>
+          <span className="text-text-muted">/</span>
+          <Button
+            variant="ghost"
+            onClick={onRedo}
+            disabled={!canRedo}
+            aria-label="Redo"
+            className="text-sm font-semibold text-text-muted disabled:opacity-40"
+          >
+            Redo
+          </Button>
+        </div>
+
+        <Button
+          variant="ghost"
+          onClick={jumpToStart}
+          className="flex items-center gap-2"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle">
+            <SkipToStart className="text-text-heading" />
+          </span>
+          <span className="text-sm font-semibold text-text-muted">
+            Jump to start
+          </span>
+        </Button>
+      </div>
 
       {/* Center controls */}
       <div className="flex items-center gap-8">

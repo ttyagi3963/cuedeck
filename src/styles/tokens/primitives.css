@@ -7,8 +7,21 @@
   --cd-color-zinc-800: #27272a;
   --cd-color-zinc-900: #18181b;
   --cd-color-white: #ffffff;
+  --cd-color-red-300: #fca5a5;
+  --cd-color-red-400: #f87171;
   --cd-color-red-500: #ef4444;
+  --cd-color-red-900: #7f1d1d;
+  --cd-color-green-100: #dcfce7;
+  --cd-color-green-200: #bbf7d0;
   --cd-color-green-600: #16a34a;
+  --cd-color-green-700: #15803d;
+  --cd-color-yellow-100: #fef9c3;
+  --cd-color-yellow-700: #a16207;
+  --cd-color-blue-100: #dbeafe;
+  --cd-color-blue-200: #bfdbfe;
+  --cd-color-blue-700: #1d4ed8;
+  --cd-color-orange-200: #fed7aa;
+  --cd-color-orange-700: #c2410c;
 
   --cd-font-size-sm: 14px;
   --cd-font-size-base: 16px;
@@ -47,4 +60,14 @@
   --cd-button-primary-height: 44px;
 
   --cd-border-width-default: 1px;
+
+  --cd-marker-row-height: 60px;
+  --cd-ad-markers-width: 412px;
+  --cd-spacing-1-5: 6px;
+  --cd-dialog-min-width: 350px;
+  --cd-dialog-max-width: 462px;
+
+  --cd-toast-min-width: 320px;
+  --cd-toast-max-width: 420px;
+  --cd-toast-duration: 4000ms;
 }

@@ -1,5 +1,3 @@
-import type { RefObject } from "react";
-
 export interface PlaybackState {
   isPlaying: boolean;
   currentTime: number;
@@ -7,10 +5,8 @@ export interface PlaybackState {
   isReady: boolean;
 }
 
-type VideoRef = RefObject<HTMLVideoElement | null>;
-
 export interface VideoPlayerControls {
-  videoRef: VideoRef;
+  videoRef: (node: HTMLVideoElement | null) => void;
   state: PlaybackState;
   toggle: () => void;
   seek: (time: number) => void;

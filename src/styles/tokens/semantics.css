@@ -6,6 +6,9 @@
   --color-border-default: var(--cd-color-zinc-200);
   --color-text-on-primary: var(--cd-color-white);
   --color-notification-badge: var(--cd-color-red-500);
+  --color-danger-subtle: var(--cd-color-red-300);
+  --color-danger-subtle-hover: var(--cd-color-red-400);
+  --color-text-danger: var(--cd-color-red-900);
   --color-surface: var(--cd-color-white);
   --color-trend-positive: var(--cd-color-green-600);
   --color-border-subtle: var(--cd-color-zinc-300);
@@ -31,14 +34,51 @@
   --spacing-nav-height: var(--cd-nav-height);
   --layout-max-width: var(--cd-layout-max-width);
 
-  --page-padding: var(--cd-spacing-16);
-  --page-gap: var(--cd-spacing-8);
-  --content-gap-sm: var(--cd-spacing-4);
-  --content-gap-lg: var(--cd-spacing-8);
+  --spacing-page-padding: var(--cd-spacing-16);
+  --spacing-page-gap: var(--cd-spacing-8);
+  --spacing-content-gap-sm: var(--cd-spacing-4);
+  --spacing-content-gap-lg: var(--cd-spacing-8);
 
-  --button-primary-radius: var(--cd-radius-md);
-  --button-primary-padding-y: var(--cd-button-primary-padding-y);
-  --button-primary-padding-x: var(--cd-button-primary-padding-x);
-  --button-primary-gap: var(--cd-spacing-2);
-  --button-primary-height: var(--cd-button-primary-height);
+  --radius-button-primary: var(--cd-radius-md);
+  --spacing-button-primary-padding-y: var(--cd-button-primary-padding-y);
+  --spacing-button-primary-padding-x: var(--cd-button-primary-padding-x);
+  --spacing-button-primary-gap: var(--cd-spacing-2);
+  --spacing-button-primary-height: var(--cd-button-primary-height);
+
+  --spacing-marker-row-height: var(--cd-marker-row-height);
+  --spacing-marker-row-gap: var(--cd-spacing-4);
+  --spacing-marker-row-padding-y: var(--cd-spacing-3);
+  --spacing-marker-row-padding-x: var(--cd-spacing-4);
+  --radius-marker-row: var(--cd-radius-lg);
+
+  --color-badge-auto-bg: var(--cd-color-green-200);
+  --color-badge-auto-text: var(--cd-color-green-700);
+  --color-badge-static-bg: var(--cd-color-blue-200);
+  --color-badge-static-text: var(--cd-color-blue-700);
+  --color-badge-ab-bg: var(--cd-color-orange-200);
+  --color-badge-ab-text: var(--cd-color-orange-700);
+
+  --spacing-ad-markers-width: var(--cd-ad-markers-width);
+  --spacing-ad-markers-padding: var(--cd-spacing-8);
+  --radius-ad-markers: var(--cd-radius-xl);
+  --spacing-ad-markers-actions-gap: var(--cd-spacing-3);
+
+  --spacing-marker-list-gap: var(--cd-spacing-3);
+  --spacing-marker-list-padding-x: var(--cd-spacing-8);
+  --spacing-marker-list-empty-padding-y: var(--cd-spacing-6);
+
+  --spacing-dialog-min-width: var(--cd-dialog-min-width);
+  --spacing-dialog-max-width: var(--cd-dialog-max-width);
+  --spacing-dialog-padding: var(--cd-spacing-8);
+  --spacing-dialog-gap: var(--cd-spacing-6);
+  --radius-dialog: var(--cd-radius-lg);
+
+  --color-toast-error-bg: var(--cd-color-red-300);
+  --color-toast-error-text: var(--cd-color-red-900);
+  --color-toast-success-bg: var(--cd-color-green-200);
+  --color-toast-success-text: var(--cd-color-green-700);
+  --spacing-toast-min-width: var(--cd-toast-min-width);
+  --spacing-toast-max-width: var(--cd-toast-max-width);
+  --spacing-toast-padding: var(--cd-spacing-4);
+  --radius-toast: var(--cd-radius-lg);
 }
