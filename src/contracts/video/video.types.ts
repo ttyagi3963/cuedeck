@@ -8,6 +8,8 @@ export interface PlaybackState {
 export interface VideoPlayerControls {
   videoRef: (node: HTMLVideoElement | null) => void;
   state: PlaybackState;
+  play: () => void;
+  pause: () => void;
   toggle: () => void;
   seek: (time: number) => void;
   skip: (seconds: number) => void;

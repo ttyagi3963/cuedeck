@@ -30,4 +30,16 @@ export class LocalStorageRepositoryImpl implements IStorageRepository {
   async getPublicUrl(filePath: string): Promise<string> {
     return `/videos/${filePath}`;
   }
+
+  async delete(filePath: string): Promise<void> {
+    const fullFilePath = path.join(this.videosRoot, filePath);
+
+    try {
+      await fs.unlink(fullFilePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
 }

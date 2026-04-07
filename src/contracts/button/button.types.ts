@@ -3,6 +3,7 @@ export const BUTTON_VARIANTS = [
   "outline",
   "ghost",
   "danger",
+  "disabled",
 ] as const;
 
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
@@ -16,4 +17,6 @@ export const BUTTON_VARIANT_CLASSES: Record<ButtonVariant, string> = {
     "inline-flex cursor-pointer items-center gap-2 text-text-muted transition-colors hover:text-text-heading",
   danger:
     "inline-flex cursor-pointer items-center justify-center rounded-lg bg-danger-subtle p-2 text-text-danger hover:bg-danger-subtle-hover",
+  disabled:
+    "inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-md bg-gray-600 px-4 py-3 text-sm font-medium text-gray-400 opacity-60",
 };

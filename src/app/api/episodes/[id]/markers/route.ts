@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { markerRepository } from "@/lib/composition/composition";
-import { MARKER_TYPES } from "@/contracts/marker";
+import { ZodError } from "zod";
+import { markerService } from "@/lib/composition/composition";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -8,32 +8,26 @@ type RouteParams = {
 
 export async function GET(_request: Request, { params }: RouteParams) {
   const { id: episodeId } = await params;
-  const markers = await markerRepository.findByEpisodeId(episodeId);
+  const markers = await markerService.findByEpisodeId(episodeId);
 
   return NextResponse.json(markers);
 }
 
 export async function POST(request: Request, { params }: RouteParams) {
   const { id: episodeId } = await params;
-  const body = await request.json();
 
-  const { timeSec, type } = body;
+  try {
+    const body = await request.json();
+    const marker = await markerService.create(episodeId, body);
 
-  if (typeof timeSec !== "number" || timeSec < 0) {
-    return NextResponse.json(
-      { error: "timeSec must be a non-negative number" },
-      { status: 400 },
-    );
+    return NextResponse.json(marker, { status: 201 });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0].message },
+        { status: 400 },
+      );
+    }
+    throw error;
   }
-
-  if (!MARKER_TYPES.includes(type)) {
-    return NextResponse.json(
-      { error: `type must be one of: ${MARKER_TYPES.join(", ")}` },
-      { status: 400 },
-    );
-  }
-
-  const marker = await markerRepository.create(episodeId, timeSec, type);
-
-  return NextResponse.json(marker, { status: 201 });
 }

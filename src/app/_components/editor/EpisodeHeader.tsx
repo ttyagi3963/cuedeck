@@ -18,7 +18,7 @@ export default function EpisodeHeader({
         href={ROUTES.ads}
         className="text-sm font-semibold text-text-muted hover:text-text-heading"
       >
-        ← Ads
+        Ads
       </Link>
       <h1 className="text-3xl font-bold leading-9 text-text-heading">
         {title}

@@ -6,3 +6,9 @@ export interface Episode {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface CreateEpisodeInput {
+  title: string;
+  sourceUrl: string;
+  duration: number;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import type { PlaybackState } from "@/contracts/video";
+import { useEditor } from "@/context/EditorContext";
 import {
   SkipToStart,
   ClockRewind,
@@ -10,57 +10,46 @@ import {
   FastForwardFill,
   ClockForward,
   SkipToEnd,
+  Undo,
+  Redo,
 } from "@/app/_components/ui/icons";
 import Button from "@/app/_components/ui/Button";
 
-type VideoControlsProps = {
-  state: PlaybackState;
-  toggle: () => void;
-  skip: (seconds: number) => void;
-  jumpToStart: () => void;
-  jumpToEnd: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
-};
-
-export default function VideoControls({
-  state,
-  toggle,
-  skip,
-  jumpToStart,
-  jumpToEnd,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-}: VideoControlsProps) {
+export default function VideoControls() {
+  const {
+    playback,
+    toggle,
+    skip,
+    jumpToStart,
+    jumpToEnd,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+  } = useEditor();
   return (
     <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface p-4 [&_*]:cursor-pointer">
-      {/* Left: undo/redo + jump to start */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            onClick={onUndo}
-            disabled={!canUndo}
-            aria-label="Undo"
-            className="text-sm font-semibold text-text-muted disabled:opacity-40"
-          >
-            Undo
-          </Button>
-          <span className="text-text-muted">/</span>
-          <Button
-            variant="ghost"
-            onClick={onRedo}
-            disabled={!canRedo}
-            aria-label="Redo"
-            className="text-sm font-semibold text-text-muted disabled:opacity-40"
-          >
-            Redo
-          </Button>
-        </div>
+      {/* Left: undo / redo + jump to start */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          onClick={undo}
+          disabled={!canUndo}
+          aria-label="Undo"
+          className="text-text-heading disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Undo />
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={redo}
+          disabled={!canRedo}
+          aria-label="Redo"
+          className="text-text-heading disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Redo />
+        </Button>
 
         <Button
           variant="ghost"
@@ -100,10 +89,10 @@ export default function VideoControls({
         <Button
           variant="ghost"
           onClick={toggle}
-          aria-label={state.isPlaying ? "Pause" : "Play"}
+          aria-label={playback.isPlaying ? "Pause" : "Play"}
           className="text-text-heading"
         >
-          {state.isPlaying ? <PauseFill /> : <PlayFill />}
+          {playback.isPlaying ? <PauseFill /> : <PlayFill />}
         </Button>
 
         <Button

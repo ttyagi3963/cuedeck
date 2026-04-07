@@ -7,10 +7,12 @@ import {
   useCallback,
   type MutableRefObject,
 } from "react";
+import Hls from "hls.js";
 import type { PlaybackState, VideoPlayerControls } from "@/contracts/video";
 
-export function useVideoPlayer(): VideoPlayerControls {
+export function useVideoPlayer(src: string): VideoPlayerControls {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
 
   const [state, setState] = useState<PlaybackState>({
@@ -26,6 +28,30 @@ export function useVideoPlayer(): VideoPlayerControls {
     setVideoEl(node);
   }, []);
 
+  // Attach HLS or direct source
+  useEffect(() => {
+    const video = videoEl;
+    if (!video || !src) return;
+
+    const isHlsSource = src.endsWith(".m3u8");
+
+    if (isHlsSource && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hlsRef.current = hls;
+
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    }
+
+    // Safari handles HLS natively; for non-HLS sources use direct src
+    video.src = src;
+    return undefined;
+  }, [videoEl, src]);
+
   function toggle() {
     const video = videoRef.current;
     if (!video) return;
@@ -37,9 +63,22 @@ export function useVideoPlayer(): VideoPlayerControls {
     }
   }
 
+  function play() {
+    const video = videoRef.current;
+    if (!video) return;
+    video.play();
+  }
+
+  function pause() {
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+  }
+
   function seek(time: number) {
     const video = videoRef.current;
     if (!video) return;
+    video.pause();
     video.currentTime = Math.max(0, Math.min(time, video.duration || 0));
   }
 
@@ -74,11 +113,18 @@ export function useVideoPlayer(): VideoPlayerControls {
         isReady: true,
       }));
     const onEnded = () => setState((prev) => ({ ...prev, isPlaying: false }));
+    const onLoadedData = () => {
+      // Show the first frame instead of a black screen
+      if (video.currentTime === 0) {
+        video.currentTime = 2;
+      }
+    };
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("loadedmetadata", onLoadedMetadata);
+    video.addEventListener("loadeddata", onLoadedData);
     video.addEventListener("ended", onEnded);
 
     // If metadata already loaded (e.g. from cache), sync immediately
@@ -96,6 +142,7 @@ export function useVideoPlayer(): VideoPlayerControls {
       video.removeEventListener("pause", onPause);
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      video.removeEventListener("loadeddata", onLoadedData);
       video.removeEventListener("ended", onEnded);
     };
   }, [videoEl]);
@@ -103,6 +150,8 @@ export function useVideoPlayer(): VideoPlayerControls {
   return {
     videoRef: setRef,
     state,
+    play,
+    pause,
     toggle,
     seek,
     skip,

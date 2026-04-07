@@ -2,25 +2,23 @@
 
 import { useState, useCallback } from "react";
 import { formatTime } from "@/utils/time";
+import { useEditor } from "@/context/EditorContext";
 import ProgressSlider from "./ProgressSlider";
+import AdOverlay from "./AdOverlay";
 
-type VideoPlayerProps = {
-  src: string;
-  poster?: string;
-  videoRef: (node: HTMLVideoElement | null) => void;
-  currentTime: number;
-  duration: number;
-  onSeek: (time: number) => void;
-};
+export default function VideoPlayer() {
+  const {
+    episode,
+    videoRef,
+    playback,
+    seek,
+    toggle,
+    adState,
+    onAdEnded,
+    markers,
+    moveMarker,
+  } = useEditor();
 
-export default function VideoPlayer({
-  src,
-  poster,
-  videoRef,
-  currentTime,
-  duration,
-  onSeek,
-}: VideoPlayerProps) {
   const [hoverState, setHoverState] = useState<{
     time: number;
     percent: number;
@@ -36,13 +34,17 @@ export default function VideoPlayer({
 
   return (
     <div className="group/video relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+      {/* Ad overlay — shown when an ad is playing */}
+      {adState.isPlayingAd && adState.currentAd && (
+        <AdOverlay ad={adState.currentAd} onEnded={onAdEnded} />
+      )}
+
       <video
         ref={videoRef}
-        src={src}
-        poster={poster}
-        className="h-full w-full object-contain"
+        className="h-full w-full cursor-pointer object-contain"
         playsInline
         preload="metadata"
+        onClick={toggle}
       />
 
       {/* Slider overlay — hidden until hover */}
@@ -55,7 +57,7 @@ export default function VideoPlayer({
           >
             <div className="overflow-hidden rounded-md border-2 border-white/80 shadow-lg">
               <video
-                src={src}
+                src={episode.sourceUrl}
                 ref={(el) => {
                   if (el) el.currentTime = hoverState.time;
                 }}
@@ -71,9 +73,11 @@ export default function VideoPlayer({
         )}
 
         <ProgressSlider
-          currentTime={currentTime}
-          duration={duration}
-          onSeek={onSeek}
+          currentTime={playback.currentTime}
+          duration={playback.duration}
+          markers={markers}
+          onSeek={seek}
+          onMarkerDrag={moveMarker}
           onHover={handleHover}
           onHoverEnd={handleHoverEnd}
         />

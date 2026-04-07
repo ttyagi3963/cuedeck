@@ -1,20 +1,45 @@
+"use client";
+
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import Button from "../ui/Button";
-import { PRIMARY_NAV_ITEMS } from "@/lib/constants";
+import Dialog from "../ui/Dialog";
+import UploadMediaForm from "../upload/UploadMediaForm";
+import { PRIMARY_NAV_ITEMS, UPLOAD_MEDIA_FORM_COPY } from "@/lib/constants";
 import WeeklyPlaysCard from "./partials/WeeklyPlaysCard";
 import MiniSidebar from "./partials/MiniSidebar";
 
-const activeItem = "Ads";
-
 export default function SideNavigation() {
+  const pathname = usePathname();
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const episodeUploadCopy = UPLOAD_MEDIA_FORM_COPY.episode;
+
   return (
     <aside className="border-r border-border-default bg-surface">
       <div className="flex h-full flex-col justify-between px-8 py-8">
         <div>
-          <Button variant="primary" className="mb-6 w-full">
+          <Button
+            variant="primary"
+            className="mb-6 w-full"
+            onClick={() => setIsUploadDialogOpen(true)}
+          >
             Create an episode
           </Button>
+
+          <Dialog
+            open={isUploadDialogOpen}
+            onClose={() => setIsUploadDialogOpen(false)}
+            title={episodeUploadCopy.title}
+            subtitle={episodeUploadCopy.description}
+          >
+            <UploadMediaForm
+              kind="episode"
+              showHeader={false}
+              onSuccess={() => setIsUploadDialogOpen(false)}
+            />
+          </Dialog>
 
           <Button
             variant="outline"
@@ -32,7 +57,13 @@ export default function SideNavigation() {
           <nav aria-label="Primary navigation">
             <ul className="grid gap-1">
               {PRIMARY_NAV_ITEMS.map(({ label, icon: Icon, href }) => {
-                const isActive = label === activeItem;
+                const isActive =
+                  href === "/"
+                    ? pathname === "/"
+                    : href === "/ads"
+                      ? pathname.startsWith("/ads") ||
+                        pathname.startsWith("/editor")
+                      : pathname.startsWith(href);
 
                 return (
                   <li key={label}>
@@ -42,7 +73,7 @@ export default function SideNavigation() {
                       className={[
                         "flex h-12 w-full items-center gap-3 rounded-md px-3 text-lg font-bold transition-colors",
                         isActive
-                          ? "bg-background-page text-text-heading"
+                          ? "bg-zinc-100 text-text-heading"
                           : "text-text-muted hover:bg-background-page hover:text-text-heading",
                       ].join(" ")}
                     >

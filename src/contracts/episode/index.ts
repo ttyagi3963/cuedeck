@@ -1,1 +1,2 @@
-export type { Episode } from "./episode.types";
+export type { Episode, CreateEpisodeInput } from "./episode.types";
+export { createEpisodeSchema, episodeSchema } from "./episode.schemas";

@@ -96,6 +96,7 @@ model Episode {
 model Ad {
   id        String     @id @default(cuid())
   title     String
+  companyName String?
   videoUrl  String // Ad video in SS
   duration  Float
   markers   MarkerAd[]

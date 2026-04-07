@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  episodeRepository,
-  markerRepository,
-} from "@/lib/composition/composition";
+import { episodeService, markerService } from "@/lib/composition/composition";
 import EditorPage from "@/app/_components/editor/EditorPage";
 import EpisodeHeader from "@/app/_components/editor/EpisodeHeader";
 
@@ -12,13 +9,13 @@ type EditorPageParams = {
 
 export default async function EditorRoute({ params }: EditorPageParams) {
   const { id } = await params;
-  const episode = await episodeRepository.findById(id);
+  const episode = await episodeService.findById(id);
 
   if (!episode) {
     notFound();
   }
 
-  const markers = await markerRepository.findByEpisodeId(episode.id);
+  const markers = await markerService.findByEpisodeId(episode.id);
 
   return (
     <div className="flex flex-col gap-page-gap p-page-padding">

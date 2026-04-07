@@ -1,59 +1,76 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
+
+type Command = {
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
+};
 
 type UndoRedoControls = {
   canUndo: boolean;
   canRedo: boolean;
-  record: (time: number) => void;
-  undo: () => number | null;
-  redo: () => number | null;
+  isRunning: boolean;
+  push: (command: Command) => void;
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
+  clear: () => void;
 };
 
 const MAX_HISTORY = 50;
 
 export function useUndoRedo(): UndoRedoControls {
-  const past = useRef<number[]>([]);
-  const future = useRef<number[]>([]);
-  const [, forceUpdate] = useState(0);
+  const [past, setPast] = useState<Command[]>([]);
+  const [future, setFuture] = useState<Command[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
 
-  function record(time: number) {
-    const last = past.current[past.current.length - 1];
-    // Skip duplicate consecutive entries
-    if (last !== undefined && Math.abs(last - time) < 0.5) return;
+  function push(command: Command) {
+    setPast((prev) => [...prev.slice(-(MAX_HISTORY - 1)), command]);
+    setFuture([]);
+  }
 
-    past.current.push(time);
-    if (past.current.length > MAX_HISTORY) {
-      past.current.shift();
+  async function undo() {
+    const command = past[past.length - 1];
+    if (!command || isRunning) return;
+
+    setIsRunning(true);
+
+    try {
+      await command.undo();
+      setPast((prev) => prev.slice(0, -1));
+      setFuture((prev) => [...prev.slice(-(MAX_HISTORY - 1)), command]);
+    } finally {
+      setIsRunning(false);
     }
-    future.current = [];
-    forceUpdate((prev) => prev + 1);
   }
 
-  function undo(): number | null {
-    if (past.current.length < 2) return null;
+  async function redo() {
+    const command = future[future.length - 1];
+    if (!command || isRunning) return;
 
-    const current = past.current.pop()!;
-    future.current.push(current);
-    const previous = past.current[past.current.length - 1];
-    forceUpdate((prev) => prev + 1);
-    return previous;
+    setIsRunning(true);
+
+    try {
+      await command.redo();
+      setFuture((prev) => prev.slice(0, -1));
+      setPast((prev) => [...prev.slice(-(MAX_HISTORY - 1)), command]);
+    } finally {
+      setIsRunning(false);
+    }
   }
 
-  function redo(): number | null {
-    if (future.current.length === 0) return null;
-
-    const next = future.current.pop()!;
-    past.current.push(next);
-    forceUpdate((prev) => prev + 1);
-    return next;
+  function clear() {
+    setPast([]);
+    setFuture([]);
   }
 
   return {
-    canUndo: past.current.length >= 2,
-    canRedo: future.current.length > 0,
-    record,
+    canUndo: !isRunning && past.length > 0,
+    canRedo: !isRunning && future.length > 0,
+    isRunning,
+    push,
     undo,
     redo,
+    clear,
   };
 }

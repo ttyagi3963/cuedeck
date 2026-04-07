@@ -1,5 +1,6 @@
 import type { MarkerType } from "@/contracts/marker";
 import { MARKER_TYPE_META, MARKER_TYPE_ICONS } from "@/contracts/marker";
+import Input from "@/app/_components/ui/Input";
 
 type MarkerTypeOptionProps = {
   type: MarkerType;
@@ -24,13 +25,13 @@ export default function MarkerTypeOption({
         </span>
         <span className="text-sm text-text-muted">{meta.description}</span>
       </div>
-      <input
+      <Input
+        variant="radio"
         type="radio"
         name="markerType"
         value={type}
         checked={selected}
         onChange={onSelect}
-        className="size-5 accent-background-primary"
       />
     </label>
   );

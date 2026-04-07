@@ -1,0 +1,21 @@
+import type { SVGProps } from "react";
+
+export default function NavAnalytics(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M2.5 2.5V17.5H17.5M15 14.1667V7.5M10.8333 14.1667V4.16667M6.66667 14.1667V11.6667"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

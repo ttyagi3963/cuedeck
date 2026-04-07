@@ -32,9 +32,9 @@ export default function RootLayout({
         <Providers>
           <div className="mx-auto flex w-full flex-1 flex-col max-w-[var(--layout-max-width)] shadow-sm">
             <TopNavigation />
-            <div className="grid flex-1 grid-cols-[var(--layout-columns)] bg-background-page">
+            <div className="grid min-w-0 flex-1 grid-cols-[var(--layout-columns)] bg-background-page">
               <SideNavigation />
-              <main>{children}</main>
+              <main className="min-w-0 bg-background-page">{children}</main>
             </div>
             <Footer />
           </div>
