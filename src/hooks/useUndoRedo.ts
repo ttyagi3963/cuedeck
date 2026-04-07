@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MAX_UNDO_HISTORY } from "@/lib/constants";
 
 type Command = {
   undo: () => Promise<void>;
@@ -17,15 +18,13 @@ type UndoRedoControls = {
   clear: () => void;
 };
 
-const MAX_HISTORY = 50;
-
 export function useUndoRedo(): UndoRedoControls {
   const [past, setPast] = useState<Command[]>([]);
   const [future, setFuture] = useState<Command[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
   function push(command: Command) {
-    setPast((prev) => [...prev.slice(-(MAX_HISTORY - 1)), command]);
+    setPast((prev) => [...prev.slice(-(MAX_UNDO_HISTORY - 1)), command]);
     setFuture([]);
   }
 
@@ -38,7 +37,7 @@ export function useUndoRedo(): UndoRedoControls {
     try {
       await command.undo();
       setPast((prev) => prev.slice(0, -1));
-      setFuture((prev) => [...prev.slice(-(MAX_HISTORY - 1)), command]);
+      setFuture((prev) => [...prev.slice(-(MAX_UNDO_HISTORY - 1)), command]);
     } finally {
       setIsRunning(false);
     }
@@ -53,7 +52,7 @@ export function useUndoRedo(): UndoRedoControls {
     try {
       await command.redo();
       setFuture((prev) => prev.slice(0, -1));
-      setPast((prev) => [...prev.slice(-(MAX_HISTORY - 1)), command]);
+      setPast((prev) => [...prev.slice(-(MAX_UNDO_HISTORY - 1)), command]);
     } finally {
       setIsRunning(false);
     }

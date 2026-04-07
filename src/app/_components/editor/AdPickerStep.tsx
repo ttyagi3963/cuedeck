@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import type { Ad } from "@/contracts/ad";
 import { useAds } from "@/hooks/useAds";
+import { formatDurationShort } from "@/utils/time";
 import Button from "@/app/_components/ui/Button";
 import Input from "@/app/_components/ui/Input";
 import Spinner from "@/app/_components/ui/Spinner";
@@ -117,8 +118,7 @@ export default function AdPickerStep({
                   {ad.title}
                 </span>
                 <span className="text-xs text-text-muted">
-                  {Math.floor(ad.duration / 60)}m {Math.floor(ad.duration % 60)}
-                  s
+                  {formatDurationShort(ad.duration)}
                 </span>
               </div>
 

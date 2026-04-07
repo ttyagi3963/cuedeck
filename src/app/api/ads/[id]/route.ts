@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { adService, storageService } from "@/lib/composition/composition";
+import { NotFoundError } from "@/contracts/errors";
+import { toErrorResponse } from "@/app/api/_lib/errors";
 import { getStoredPathFromUrl } from "@/lib/uploads";
 
 type RouteParams = {
@@ -12,7 +14,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
     const ad = await adService.findById(id);
     if (!ad) {
-      return NextResponse.json({ error: "Ad not found" }, { status: 404 });
+      throw new NotFoundError("Ad");
     }
 
     await adService.delete(id);
@@ -23,7 +25,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
 
     return new NextResponse(null, { status: 204 });
-  } catch {
-    return NextResponse.json({ error: "Failed to delete ad" }, { status: 500 });
+  } catch (error) {
+    return toErrorResponse(error, "Failed to delete ad");
   }
 }

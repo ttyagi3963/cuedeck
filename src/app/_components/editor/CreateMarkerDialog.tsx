@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState } from "react";
 import { MARKER_TYPES, type MarkerType } from "@/contracts/marker";
 import { formatTimestamp } from "@/utils/time";
 import Dialog from "@/app/_components/ui/Dialog";
 import Button from "@/app/_components/ui/Button";
+import {
+  DIALOG_STEPS,
+  MARKER_DIALOG_STEP_TITLES,
+  type MarkerDialogStep,
+} from "./markerUi";
 import MarkerTypeOption from "./MarkerTypeOption";
 import AdPickerStep from "./AdPickerStep";
-
-type Step = "type" | "ads";
 
 type CreateMarkerDialogProps = {
   open: boolean;
@@ -18,13 +21,12 @@ type CreateMarkerDialogProps = {
   currentTime: number;
 };
 
-const STEP_TITLES: Record<Step, string> = {
-  type: "Create ad marker",
-  ads: "Assign ads",
-};
-
-function subtitleForStep(step: Step, currentTime: number, type: MarkerType) {
-  if (step === "type") {
+function subtitleForStep(
+  step: MarkerDialogStep,
+  currentTime: number,
+  type: MarkerType,
+) {
+  if (step === DIALOG_STEPS.TYPE) {
     return `Marker will be placed at ${formatTimestamp(currentTime)}`;
   }
   return type === "STATIC"
@@ -39,24 +41,10 @@ export default function CreateMarkerDialog({
   onAutoCreate,
   currentTime,
 }: CreateMarkerDialogProps) {
-  const [step, setStep] = useState<Step>("type");
+  const [step, setStep] = useState<MarkerDialogStep>(DIALOG_STEPS.TYPE);
   const [selectedType, setSelectedType] = useState<MarkerType>("STATIC");
-  const prevOpenRef = useRef(false);
-
-  useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      setStep("type");
-      setSelectedType("STATIC");
-    }
-    prevOpenRef.current = open;
-  }, [open]);
-
-  const reset = useCallback(() => {
-    setStep("type");
-  }, []);
 
   function handleClose() {
-    reset();
     onClose();
   }
 
@@ -66,7 +54,7 @@ export default function CreateMarkerDialog({
       handleClose();
       return;
     }
-    setStep("ads");
+    setStep(DIALOG_STEPS.ADS);
   }
 
   function handleAdsConfirm(adIds: string[]) {
@@ -78,10 +66,10 @@ export default function CreateMarkerDialog({
     <Dialog
       open={open}
       onClose={handleClose}
-      title={STEP_TITLES[step]}
+      title={MARKER_DIALOG_STEP_TITLES[step]}
       subtitle={subtitleForStep(step, currentTime, selectedType)}
     >
-      {step === "type" && (
+      {step === DIALOG_STEPS.TYPE && (
         <>
           <fieldset className="flex flex-col gap-content-gap-sm">
             {MARKER_TYPES.map((type) => (
@@ -108,12 +96,12 @@ export default function CreateMarkerDialog({
         </>
       )}
 
-      {step === "ads" && (
+      {step === DIALOG_STEPS.ADS && (
         <AdPickerStep
           key={selectedType}
           mode={selectedType === "STATIC" ? "single" : "multi"}
           onConfirm={handleAdsConfirm}
-          onBack={() => setStep("type")}
+          onBack={() => setStep(DIALOG_STEPS.TYPE)}
         />
       )}
     </Dialog>

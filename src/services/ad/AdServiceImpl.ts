@@ -1,5 +1,6 @@
 import type { Ad } from "@/contracts/ad";
 import { createAdSchema } from "@/contracts/ad";
+import { NotFoundError } from "@/contracts/errors";
 import type { IAdService } from "./IAdService";
 import type { IAdRepository } from "@/repositories/ad/IAdRepository";
 
@@ -22,7 +23,7 @@ export class AdServiceImpl implements IAdService {
   async delete(id: string): Promise<void> {
     const ad = await this.adRepository.findById(id);
     if (!ad) {
-      throw new Error("Ad not found");
+      throw new NotFoundError("Ad");
     }
     await this.adRepository.delete(id);
   }

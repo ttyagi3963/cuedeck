@@ -1,6 +1,6 @@
 import type { MarkerType } from "@/contracts/marker";
-import { MARKER_TYPE_META, MARKER_TYPE_ICONS } from "@/contracts/marker";
 import Input from "@/app/_components/ui/Input";
+import { MARKER_TYPE_META, MARKER_TYPE_ICONS } from "./markerUi";
 
 type MarkerTypeOptionProps = {
   type: MarkerType;

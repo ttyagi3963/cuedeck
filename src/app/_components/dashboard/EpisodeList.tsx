@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Episode } from "@/contracts/episode";
+import { formatDurationShort } from "@/utils/time";
 import { useDeleteEpisode } from "@/hooks/useDashboardMutations";
 import { useEpisodes } from "@/hooks/useEpisodes";
 import { useToast } from "@/hooks/useToast";
@@ -13,7 +14,9 @@ type EpisodeListProps = {
   episodes: Episode[];
 };
 
-export default function EpisodeList({ episodes: initialEpisodes }: EpisodeListProps) {
+export default function EpisodeList({
+  episodes: initialEpisodes,
+}: EpisodeListProps) {
   const { data: episodes = [] } = useEpisodes(initialEpisodes);
   const deleteEpisodeMutation = useDeleteEpisode();
   const { toast } = useToast();
@@ -78,8 +81,7 @@ export default function EpisodeList({ episodes: initialEpisodes }: EpisodeListPr
                     {episode.title}
                   </h3>
                   <p className="text-xs text-text-muted">
-                    {Math.floor(episode.duration / 60)}m{" "}
-                    {Math.floor(episode.duration % 60)}s
+                    {formatDurationShort(episode.duration)}
                   </p>
                 </div>
               </Link>

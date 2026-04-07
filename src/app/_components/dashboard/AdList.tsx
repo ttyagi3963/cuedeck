@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Ad } from "@/contracts/ad";
 import { useAds } from "@/hooks/useAds";
+import { formatDurationShort } from "@/utils/time";
 import { useDeleteAd } from "@/hooks/useDashboardMutations";
 import { useToast } from "@/hooks/useToast";
 import Button from "@/app/_components/ui/Button";
@@ -70,7 +71,7 @@ export default function AdList({ ads: initialAds }: AdListProps) {
                   </p>
                 )}
                 <p className="text-xs text-text-muted">
-                  {Math.floor(ad.duration / 60)}m {Math.floor(ad.duration % 60)}s
+                  {formatDurationShort(ad.duration)}
                 </p>
               </div>
 

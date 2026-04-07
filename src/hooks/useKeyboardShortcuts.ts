@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { INPUT_TAGS } from "@/lib/constants";
 
 type KeyMap = Record<string, () => void>;
-
-const INPUT_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 export function useKeyboardShortcuts(keyMap: KeyMap) {
   const keyMapRef = useRef(keyMap);

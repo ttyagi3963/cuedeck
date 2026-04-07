@@ -24,13 +24,15 @@ export default function EditorShell() {
     <>
       <div className="flex min-w-0 gap-content-gap-lg">
         <AdMarkers />
-        <CreateMarkerDialog
-          open={isCreateDialogOpen}
-          onClose={closeCreateDialog}
-          onConfirm={createMarker}
-          onAutoCreate={autoCreateMarker}
-          currentTime={playback.currentTime}
-        />
+        {isCreateDialogOpen && (
+          <CreateMarkerDialog
+            open={isCreateDialogOpen}
+            onClose={closeCreateDialog}
+            onConfirm={createMarker}
+            onAutoCreate={autoCreateMarker}
+            currentTime={playback.currentTime}
+          />
+        )}
         {editingMarker && (
           <EditMarkerDialog
             marker={editingMarker}

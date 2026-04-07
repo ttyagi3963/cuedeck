@@ -1,11 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { Undo2, Redo2 } from "lucide-react";
 import { MagnifyMinus, MagnifyPlus } from "@/app/_components/ui/icons";
+import { useEditorPlaybackCurrentTime } from "@/context/EditorContext";
 import { formatTimestamp } from "@/utils/time";
+import { WAVE_ZOOM_STEP } from "@/lib/constants";
 
 type WaveformToolbarProps = {
-  currentTime: number;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -16,10 +18,7 @@ type WaveformToolbarProps = {
   onZoomChange: (zoom: number) => void;
 };
 
-const ZOOM_STEP = 10;
-
-export default function WaveformToolbar({
-  currentTime,
+function WaveformToolbar({
   canUndo,
   canRedo,
   onUndo,
@@ -29,6 +28,7 @@ export default function WaveformToolbar({
   maxZoom,
   onZoomChange,
 }: WaveformToolbarProps) {
+  const currentTime = useEditorPlaybackCurrentTime();
   const canZoomOut = zoom > minZoom;
   const canZoomIn = zoom < maxZoom;
 
@@ -65,7 +65,7 @@ export default function WaveformToolbar({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => onZoomChange(zoom - ZOOM_STEP)}
+          onClick={() => onZoomChange(zoom - WAVE_ZOOM_STEP)}
           disabled={!canZoomOut}
           className="text-text-muted transition-colors hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Zoom out"
@@ -84,7 +84,7 @@ export default function WaveformToolbar({
         />
         <button
           type="button"
-          onClick={() => onZoomChange(zoom + ZOOM_STEP)}
+          onClick={() => onZoomChange(zoom + WAVE_ZOOM_STEP)}
           disabled={!canZoomIn}
           className="text-text-muted transition-colors hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Zoom in"
@@ -95,3 +95,5 @@ export default function WaveformToolbar({
     </div>
   );
 }
+
+export default memo(WaveformToolbar);

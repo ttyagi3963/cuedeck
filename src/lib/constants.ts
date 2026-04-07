@@ -64,13 +64,20 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
 
 // Waveform
 export const WAVE_HEIGHT = 132;
-export const WAVE_TOP_PADDING = 22;
+export const WAVE_TOP_PADDING = 0;
 export const WAVE_MIN_PX_PER_SEC = 0;
 export const WAVE_MAX_PX_PER_SEC = 100;
 export const WAVE_BAR_WIDTH = 2;
 export const WAVE_BAR_GAP = 4;
 export const WAVE_BAR_RADIUS = 9999;
 export const WAVE_BAR_COLOR = "#FFFFFF";
+export const WAVE_ZOOM_STEP = 10;
+
+// Undo / Redo
+export const MAX_UNDO_HISTORY = 50;
+
+// Keyboard shortcuts
+export const INPUT_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 export const UPLOAD_MEDIA_FORM_COPY = {
   episode: {

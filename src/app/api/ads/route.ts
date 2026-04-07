@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { adService, storageService } from "@/lib/composition/composition";
+import { toErrorResponse } from "@/app/api/_lib/errors";
 import {
   buildStoredFileName,
   parseDuration,
@@ -67,12 +67,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(ad, { status: 201 });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 },
-      );
-    }
-    throw error;
+    return toErrorResponse(error, "Failed to create ad");
   }
 }

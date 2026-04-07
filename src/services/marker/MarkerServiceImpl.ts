@@ -1,5 +1,6 @@
 import type { Marker } from "@/contracts/marker";
 import { createMarkerSchema, updateMarkerSchema } from "@/contracts/marker";
+import { NotFoundError } from "@/contracts/errors";
 import type { IMarkerService } from "./IMarkerService";
 import type { IMarkerRepository } from "@/repositories/marker/IMarkerRepository";
 
@@ -13,16 +14,7 @@ export class MarkerServiceImpl implements IMarkerService {
   async create(episodeId: string, input: unknown): Promise<Marker> {
     const { timeSec, type, adIds } = createMarkerSchema.parse(input);
 
-    if (adIds.length > 0) {
-      return this.markerRepository.createWithAds(
-        episodeId,
-        timeSec,
-        type,
-        adIds,
-      );
-    }
-
-    return this.markerRepository.create(episodeId, timeSec, type);
+    return this.markerRepository.create(episodeId, timeSec, type, adIds);
   }
 
   async update(id: string, input: unknown): Promise<Marker> {
@@ -30,20 +22,16 @@ export class MarkerServiceImpl implements IMarkerService {
 
     const marker = await this.markerRepository.findById(id);
     if (!marker) {
-      throw new Error("Marker not found");
+      throw new NotFoundError("Marker");
     }
 
-    if (adIds) {
-      return this.markerRepository.updateWithAds(id, timeSec, adIds);
-    }
-
-    return this.markerRepository.update(id, timeSec);
+    return this.markerRepository.update(id, timeSec, adIds);
   }
 
   async delete(id: string): Promise<void> {
     const marker = await this.markerRepository.findById(id);
     if (!marker) {
-      throw new Error("Marker not found");
+      throw new NotFoundError("Marker");
     }
     await this.markerRepository.delete(id);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 import type { Marker } from "@/contracts/marker";
 import type { Ad } from "@/contracts/ad";
 
@@ -22,7 +22,7 @@ export interface AdInjectionControls {
 
   suppress: () => void;
 
-  unsuppress: (currentTime: number) => void;
+  unsuppress: () => void;
 }
 
 function resolveAd(marker: Marker): Ad | null {
@@ -53,11 +53,40 @@ export function useAdInjection(
     currentAd: null,
   });
 
-  const playedMarkerIds = useRef(new Set<string>());
-  const lockedMarkerIds = useRef(new Set<string>());
+  const [playedMarkerIds, setPlayedMarkerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const resumeRef = useRef<(() => void) | null>(null);
   const suppressedRef = useRef(false);
   const suppressEndTimeRef = useRef(0);
+
+  const activeMarkerIds = useMemo(
+    () => new Set(markers.map((marker) => marker.id)),
+    [markers],
+  );
+  const syncedPlayedMarkerIds = useMemo(() => {
+    const next = new Set<string>();
+
+    for (const markerId of playedMarkerIds) {
+      if (activeMarkerIds.has(markerId)) {
+        next.add(markerId);
+      }
+    }
+
+    return next;
+  }, [activeMarkerIds, playedMarkerIds]);
+
+  const addPlayedMarkerId = useCallback((markerId: string) => {
+    setPlayedMarkerIds((prev) => {
+      if (prev.has(markerId)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.add(markerId);
+      return next;
+    });
+  }, []);
 
   const check = useCallback(
     (currentTime: number) => {
@@ -67,24 +96,34 @@ export function useAdInjection(
       if (suppressedRef.current) {
         if (Date.now() < suppressEndTimeRef.current) return;
         suppressedRef.current = false;
-        for (const marker of markers) {
-          playedMarkerIds.current.add(marker.id);
-        }
+        setPlayedMarkerIds((prev) => {
+          const next = new Set(prev);
+          let changed = false;
+
+          for (const marker of markers) {
+            if (!next.has(marker.id)) {
+              next.add(marker.id);
+              changed = true;
+            }
+          }
+
+          return changed ? next : prev;
+        });
         return;
       }
 
       for (const marker of markers) {
         if (
           currentTime >= marker.timeSec &&
-          !playedMarkerIds.current.has(marker.id)
+          !syncedPlayedMarkerIds.has(marker.id)
         ) {
           const ad = resolveAd(marker);
           if (!ad) {
-            playedMarkerIds.current.add(marker.id);
+            addPlayedMarkerId(marker.id);
             continue;
           }
 
-          playedMarkerIds.current.add(marker.id);
+          addPlayedMarkerId(marker.id);
           pause();
           resumeRef.current = resume;
           setAdState({ isPlayingAd: true, currentAd: ad });
@@ -92,7 +131,14 @@ export function useAdInjection(
         }
       }
     },
-    [markers, pause, resume, adState.isPlayingAd],
+    [
+      markers,
+      pause,
+      resume,
+      adState.isPlayingAd,
+      syncedPlayedMarkerIds,
+      addPlayedMarkerId,
+    ],
   );
 
   const onAdEnded = useCallback(() => {
@@ -103,14 +149,15 @@ export function useAdInjection(
 
   const reset = useCallback(
     (seekTime: number) => {
-      const keep = new Set<string>();
-      for (const marker of markers) {
-        if (marker.timeSec < seekTime) {
-          keep.add(marker.id);
+      setPlayedMarkerIds(() => {
+        const keep = new Set<string>();
+        for (const marker of markers) {
+          if (marker.timeSec < seekTime) {
+            keep.add(marker.id);
+          }
         }
-      }
-      playedMarkerIds.current = keep;
-      lockedMarkerIds.current.clear();
+        return keep;
+      });
       setAdState({ isPlayingAd: false, currentAd: null });
       resumeRef.current = null;
     },
@@ -118,15 +165,14 @@ export function useAdInjection(
   );
 
   const markAsPlayed = useCallback((markerId: string) => {
-    playedMarkerIds.current.add(markerId);
-    lockedMarkerIds.current.add(markerId);
-  }, []);
+    addPlayedMarkerId(markerId);
+  }, [addPlayedMarkerId]);
 
   const suppress = useCallback(() => {
     suppressedRef.current = true;
   }, []);
 
-  const unsuppress = useCallback((currentTime: number) => {
+  const unsuppress = useCallback(() => {
     suppressEndTimeRef.current = Date.now() + 1500;
   }, []);
 

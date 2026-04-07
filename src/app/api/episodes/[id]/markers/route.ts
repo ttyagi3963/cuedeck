@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { markerService } from "@/lib/composition/composition";
+import { toErrorResponse } from "@/app/api/_lib/errors";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -22,12 +22,6 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     return NextResponse.json(marker, { status: 201 });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 },
-      );
-    }
-    throw error;
+    return toErrorResponse(error, "Failed to create marker");
   }
 }

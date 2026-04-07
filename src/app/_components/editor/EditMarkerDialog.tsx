@@ -2,15 +2,22 @@
 
 import { useState, useCallback } from "react";
 import type { Marker } from "@/contracts/marker";
-import { MARKER_TYPE_META } from "@/contracts/marker";
-import { formatTimestamp } from "@/utils/time";
+import {
+  formatTimestamp,
+  parseTime,
+  isValidTime,
+  formatDurationShort,
+} from "@/utils/time";
 import Dialog from "@/app/_components/ui/Dialog";
 import Button from "@/app/_components/ui/Button";
 import Input from "@/app/_components/ui/Input";
 import AdPickerStep from "./AdPickerStep";
+import {
+  DIALOG_STEPS,
+  MARKER_TYPE_META,
+  type MarkerDialogStep,
+} from "./markerUi";
 import { useAds } from "@/hooks/useAds";
-
-type Step = "details" | "ads";
 
 type EditMarkerDialogProps = {
   marker: Marker;
@@ -18,29 +25,12 @@ type EditMarkerDialogProps = {
   onConfirm: (markerId: string, timeSec: number, adIds: string[]) => void;
 };
 
-const TIME_REGEX = /^\d{2}:\d{2}:\d{2}$/;
-
-/** Parse a strict HH:MM:SS string into seconds. Returns null if invalid. */
-function parseTime(input: string): number | null {
-  const trimmed = input.trim();
-  if (!TIME_REGEX.test(trimmed)) return null;
-
-  const [h, m, s] = trimmed.split(":").map(Number);
-  if (h < 0 || m < 0 || m >= 60 || s < 0 || s >= 60) return null;
-  return h * 3600 + m * 60 + s;
-}
-
-/** Returns true if the input matches HH:MM:SS with valid ranges. */
-function isValidTime(input: string): boolean {
-  return parseTime(input) !== null;
-}
-
 export default function EditMarkerDialog({
   marker,
   onClose,
   onConfirm,
 }: EditMarkerDialogProps) {
-  const [step, setStep] = useState<Step>("details");
+  const [step, setStep] = useState<MarkerDialogStep>(DIALOG_STEPS.DETAILS);
   const [timeInput, setTimeInput] = useState(formatTimestamp(marker.timeSec));
   const [adIds, setAdIds] = useState<string[]>(
     marker.markerAds.map((ma) => ma.adId),
@@ -58,7 +48,7 @@ export default function EditMarkerDialog({
   if (!hasAds) errors.push("At least one ad must be assigned");
 
   const reset = useCallback(() => {
-    setStep("details");
+    setStep(DIALOG_STEPS.DETAILS);
   }, []);
 
   function handleClose() {
@@ -75,14 +65,14 @@ export default function EditMarkerDialog({
 
   function handleAdsConfirm(newAdIds: string[]) {
     setAdIds(newAdIds);
-    setStep("details");
+    setStep(DIALOG_STEPS.DETAILS);
   }
 
   const meta = MARKER_TYPE_META[marker.type];
 
-  const title = step === "details" ? "Edit marker" : "Change ad";
+  const title = step === DIALOG_STEPS.DETAILS ? "Edit marker" : "Change ad";
   const subtitle =
-    step === "details"
+    step === DIALOG_STEPS.DETAILS
       ? `${meta.label} marker`
       : marker.type === "STATIC"
         ? "Select one ad for this marker"
@@ -90,7 +80,7 @@ export default function EditMarkerDialog({
 
   return (
     <Dialog open onClose={handleClose} title={title} subtitle={subtitle}>
-      {step === "details" && (
+      {step === DIALOG_STEPS.DETAILS && (
         <div className="flex flex-col gap-4">
           {/* Validation errors */}
           {errors.length > 0 && (
@@ -149,8 +139,7 @@ export default function EditMarkerDialog({
                         {ad.title}
                       </span>
                       <span className="text-xs text-text-muted">
-                        {Math.floor(ad.duration / 60)}m{" "}
-                        {Math.floor(ad.duration % 60)}s
+                        {formatDurationShort(ad.duration)}
                       </span>
                     </div>
                   </div>
@@ -161,7 +150,7 @@ export default function EditMarkerDialog({
               <Button
                 variant="outline"
                 className="mt-1"
-                onClick={() => setStep("ads")}
+                onClick={() => setStep(DIALOG_STEPS.ADS)}
               >
                 Change ad{marker.type === "AB" ? "s" : ""}
               </Button>
@@ -185,11 +174,11 @@ export default function EditMarkerDialog({
         </div>
       )}
 
-      {step === "ads" && (
+      {step === DIALOG_STEPS.ADS && (
         <AdPickerStep
           mode={marker.type === "STATIC" ? "single" : "multi"}
           onConfirm={handleAdsConfirm}
-          onBack={() => setStep("details")}
+          onBack={() => setStep(DIALOG_STEPS.DETAILS)}
           initialSelectedIds={adIds}
         />
       )}

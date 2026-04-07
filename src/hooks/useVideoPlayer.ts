@@ -30,8 +30,8 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
 
   // Attach HLS or direct source
   useEffect(() => {
-    const video = videoEl;
-    if (!video || !src) return;
+    const video = videoRef.current;
+    if (!video || video !== videoEl || !src) return;
 
     const isHlsSource = src.endsWith(".m3u8");
 
@@ -52,51 +52,51 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     return undefined;
   }, [videoEl, src]);
 
-  function toggle() {
+  const toggle = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (video.paused) {
-      video.play();
+      void video.play();
     } else {
       video.pause();
     }
-  }
+  }, []);
 
-  function play() {
+  const play = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.play();
-  }
+    void video.play();
+  }, []);
 
-  function pause() {
+  const pause = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     video.pause();
-  }
+  }, []);
 
-  function seek(time: number) {
+  const seek = useCallback((time: number) => {
     const video = videoRef.current;
     if (!video) return;
     video.pause();
     video.currentTime = Math.max(0, Math.min(time, video.duration || 0));
-  }
+  }, []);
 
-  function skip(seconds: number) {
+  const skip = useCallback((seconds: number) => {
     const video = videoRef.current;
     if (!video) return;
     seek(video.currentTime + seconds);
-  }
+  }, [seek]);
 
-  function jumpToStart() {
+  const jumpToStart = useCallback(() => {
     seek(0);
-  }
+  }, [seek]);
 
-  function jumpToEnd() {
+  const jumpToEnd = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     seek(video.duration);
-  }
+  }, [seek]);
 
   useEffect(() => {
     const video = videoEl;
@@ -128,16 +128,18 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     video.addEventListener("ended", onEnded);
 
     // If metadata already loaded (e.g. from cache), sync immediately
+    let isDisposed = false;
+
     if (video.readyState >= 1) {
-      setState((prev) => ({
-        ...prev,
-        duration: video.duration,
-        isReady: true,
-      }));
+      queueMicrotask(() => {
+        if (isDisposed) return;
+        onLoadedMetadata();
+      });
     }
 
     // cleanup
     return () => {
+      isDisposed = true;
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("timeupdate", onTimeUpdate);

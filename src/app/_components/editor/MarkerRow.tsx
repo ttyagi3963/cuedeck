@@ -1,10 +1,11 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
-import { MARKER_TYPE_META, type Marker } from "@/contracts/marker";
+import type { Marker } from "@/contracts/marker";
 import { Trash } from "@/app/_components/ui/icons";
 import Button from "@/app/_components/ui/Button";
 import { formatTimestamp } from "@/utils/time";
+import { MARKER_TYPE_META } from "./markerUi";
 
 type MarkerRowProps = {
   marker: Marker;

@@ -3,6 +3,8 @@ import {
   episodeService,
   storageService,
 } from "@/lib/composition/composition";
+import { NotFoundError } from "@/contracts/errors";
+import { toErrorResponse } from "@/app/api/_lib/errors";
 import { getStoredPathFromUrl } from "@/lib/uploads";
 
 type RouteParams = {
@@ -15,7 +17,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
     const episode = await episodeService.findById(id);
     if (!episode) {
-      return NextResponse.json({ error: "Episode not found" }, { status: 404 });
+      throw new NotFoundError("Episode");
     }
 
     await episodeService.delete(id);
@@ -26,10 +28,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
 
     return new NextResponse(null, { status: 204 });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to delete episode" },
-      { status: 500 },
-    );
+  } catch (error) {
+    return toErrorResponse(error, "Failed to delete episode");
   }
 }
