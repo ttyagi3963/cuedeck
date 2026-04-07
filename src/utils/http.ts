@@ -1,6 +1,8 @@
 import type { Marker, MarkerType } from "@/contracts/marker";
 import type { Ad } from "@/contracts/ad";
 import type { Episode } from "@/contracts/episode";
+import type { StartGenerationResult } from "@/contracts/generation";
+import type { Job } from "@/contracts/job";
 
 export async function fetchMarkers(episodeId: string): Promise<Marker[]> {
   const res = await fetch(`/api/episodes/${episodeId}/markers`);
@@ -163,4 +165,30 @@ export async function deleteAd(adId: string): Promise<void> {
     const body = await res.json();
     throw new Error(body.error ?? "Failed to delete ad");
   }
+}
+
+export async function startGeneration(
+  episodeId: string,
+): Promise<StartGenerationResult> {
+  const res = await fetch(`/api/episodes/${episodeId}/generate`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(body.error ?? "Failed to start generation");
+  }
+
+  return res.json();
+}
+
+export async function fetchJob(jobId: string): Promise<Job> {
+  const res = await fetch(`/api/jobs/${jobId}`);
+
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(body.error ?? "Failed to fetch job");
+  }
+
+  return res.json();
 }

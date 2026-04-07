@@ -21,6 +21,7 @@ enum MarkerType {
 enum JobType {
   TRANSCRIBE
   WAVEFORM
+  GENERATE_VIDEO
 }
 
 enum JobStatus {
@@ -45,6 +46,8 @@ model Job {
   episode     Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   progress    Int       @default(0)
   error       String?
+  payload     Json?
+  result      Json?
   retryCount  Int       @default(0)
   maxRetries  Int       @default(3)
   startedAt   DateTime?

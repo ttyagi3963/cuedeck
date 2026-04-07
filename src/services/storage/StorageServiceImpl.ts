@@ -21,4 +21,8 @@ export class StorageServiceImpl implements IStorageService {
   async delete(path: string): Promise<void> {
     return this.storageRepository.delete(path);
   }
+
+  async provideLocalCopy(url: string): Promise<string> {
+    return this.storageRepository.provideLocalCopy(url);
+  }
 }

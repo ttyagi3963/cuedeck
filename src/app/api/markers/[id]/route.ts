@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { markerService } from "@/lib/composition/composition";
+import { markerService } from "@/lib/container";
 import { toErrorResponse } from "@/app/api/_lib/errors";
 
 type RouteParams = {

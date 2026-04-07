@@ -7,11 +7,19 @@ import Waveform from "./Wave";
 import AdMarkers from "./AdMarkers";
 import CreateMarkerDialog from "./CreateMarkerDialog";
 import EditMarkerDialog from "./EditMarkerDialog";
+import GenerateEpisodeDialog from "./GenerateEpisodeDialog";
 
 export default function EditorShell() {
   const {
+    episode,
+    markers,
     isCreateDialogOpen,
     closeCreateDialog,
+    isGenerateDialogOpen,
+    closeGenerateDialog,
+    generationJobId,
+    setGenerationJobId,
+    clearGenerationJobId,
     createMarker,
     autoCreateMarker,
     playback,
@@ -31,6 +39,18 @@ export default function EditorShell() {
             onConfirm={createMarker}
             onAutoCreate={autoCreateMarker}
             currentTime={playback.currentTime}
+          />
+        )}
+        {isGenerateDialogOpen && (
+          <GenerateEpisodeDialog
+            open={isGenerateDialogOpen}
+            onClose={closeGenerateDialog}
+            episodeId={episode.id}
+            episodeTitle={episode.title}
+            markerCount={markers.length}
+            jobId={generationJobId}
+            onJobCreated={setGenerationJobId}
+            onJobCleared={clearGenerationJobId}
           />
         )}
         {editingMarker && (

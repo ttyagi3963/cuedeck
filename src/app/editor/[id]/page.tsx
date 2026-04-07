@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { episodeService, markerService } from "@/lib/composition/composition";
+import { episodeService, markerService } from "@/lib/container";
 import EditorPage from "@/app/_components/editor/EditorPage";
 import EpisodeHeader from "@/app/_components/editor/EpisodeHeader";
 

@@ -1,4 +1,4 @@
-import { adService, episodeService } from "@/lib/composition/composition";
+import { adService, episodeService } from "@/lib/container";
 import AdList from "./_components/dashboard/AdList";
 import EpisodeList from "./_components/dashboard/EpisodeList";
 import UploadMediaForm from "./_components/upload/UploadMediaForm";

@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { StorageBucket } from "@/contracts/storage";
+import { getLocalStoragePathFromPublicUrl } from "@/lib/storage/localStoragePaths";
 
 function slugify(value: string): string {
   return value
@@ -50,6 +51,5 @@ export function parseVideoFile(value: FormDataEntryValue | null): File | null {
 }
 
 export function getStoredPathFromUrl(url: string): string | null {
-  const prefix = "/videos/";
-  return url.startsWith(prefix) ? url.slice(prefix.length) : null;
+  return getLocalStoragePathFromPublicUrl(url);
 }

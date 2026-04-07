@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { episodeService, storageService } from "@/lib/composition/composition";
+import { episodeService, storageService } from "@/lib/container";
 import { toErrorResponse } from "@/app/api/_lib/errors";
 import {
   buildStoredFileName,

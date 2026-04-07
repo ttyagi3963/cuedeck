@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const storageBucketSchema = z.enum(["episodes", "ads"]);
+export const storageBucketSchema = z.enum(["episodes", "ads", "generated"]);
 
 export const storedFileSchema = z.object({
   path: z.string().min(1),

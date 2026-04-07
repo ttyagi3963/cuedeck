@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adService, storageService } from "@/lib/composition/composition";
+import { adService, storageService } from "@/lib/container";
 import { NotFoundError } from "@/contracts/errors";
 import { toErrorResponse } from "@/app/api/_lib/errors";
 import { getStoredPathFromUrl } from "@/lib/uploads";

@@ -8,31 +8,36 @@ import type {
   SaveFileInput,
   StoredFile,
 } from "@/contracts/storage/storage.types";
+import {
+  buildLocalStoragePublicUrl,
+  getLocalStorageAbsolutePath,
+  getLocalStoragePathFromPublicUrl,
+} from "@/lib/storage/localStoragePaths";
+import { InfrastructureError } from "@/lib/errors/InfrastructureError";
 
 export class LocalStorageRepositoryImpl implements IStorageRepository {
-  private readonly videosRoot = path.join(process.cwd(), "public", "videos");
-
   async save(file: SaveFileInput): Promise<StoredFile> {
-    const folderPath = path.join(this.videosRoot, file.bucket);
-    const fullFilePath = path.join(folderPath, file.fileName);
+    const storedPath = `${file.bucket}/${file.fileName}`;
+    const fullFilePath = getLocalStorageAbsolutePath(storedPath);
+    const fullFileDirectory = path.dirname(fullFilePath);
 
-    await fs.mkdir(folderPath, { recursive: true });
+    await fs.mkdir(fullFileDirectory, { recursive: true });
     await fs.writeFile(fullFilePath, file.buffer);
 
     return {
-      path: `${file.bucket}/${file.fileName}`,
-      url: `/videos/${file.bucket}/${file.fileName}`,
+      path: storedPath,
+      url: buildLocalStoragePublicUrl(storedPath),
       size: file.buffer.length,
       contentType: file.contentType,
     };
   }
 
   async getPublicUrl(filePath: string): Promise<string> {
-    return `/videos/${filePath}`;
+    return buildLocalStoragePublicUrl(filePath);
   }
 
   async delete(filePath: string): Promise<void> {
-    const fullFilePath = path.join(this.videosRoot, filePath);
+    const fullFilePath = getLocalStorageAbsolutePath(filePath);
 
     try {
       await fs.unlink(fullFilePath);
@@ -40,6 +45,28 @@ export class LocalStorageRepositoryImpl implements IStorageRepository {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         throw error;
       }
+    }
+  }
+
+  async provideLocalCopy(url: string): Promise<string> {
+    const storedPath = getLocalStoragePathFromPublicUrl(url);
+    if (!storedPath) {
+      throw new InfrastructureError(
+        `Unsupported local media source: ${url}`,
+        "UNSUPPORTED_MEDIA_SOURCE",
+      );
+    }
+
+    const fullFilePath = getLocalStorageAbsolutePath(storedPath);
+
+    try {
+      await fs.access(fullFilePath);
+      return fullFilePath;
+    } catch {
+      throw new InfrastructureError(
+        `Media file does not exist: ${fullFilePath}`,
+        "MEDIA_FILE_NOT_FOUND",
+      );
     }
   }
 }

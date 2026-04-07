@@ -1,4 +1,4 @@
-export type StorageBucket = "episodes" | "ads";
+export type StorageBucket = "episodes" | "ads" | "generated";
 
 export interface StoredFile {
   path: string;

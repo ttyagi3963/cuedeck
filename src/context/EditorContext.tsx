@@ -37,6 +37,12 @@ type EditorContextValue = {
   isCreateDialogOpen: boolean;
   openCreateDialog: () => void;
   closeCreateDialog: () => void;
+  isGenerateDialogOpen: boolean;
+  openGenerateDialog: () => void;
+  closeGenerateDialog: () => void;
+  generationJobId: string | null;
+  setGenerationJobId: (jobId: string) => void;
+  clearGenerationJobId: () => void;
   editingMarker: Marker | null;
   openEditDialog: (marker: Marker) => void;
   closeEditDialog: () => void;
@@ -121,6 +127,12 @@ export function useEditor(): EditorContextValue {
     isCreateDialogOpen,
     openCreateDialog,
     closeCreateDialog,
+    isGenerateDialogOpen,
+    openGenerateDialog,
+    closeGenerateDialog,
+    generationJobId,
+    setGenerationJobId,
+    clearGenerationJobId,
     editingMarker,
     openEditDialog,
     closeEditDialog,
@@ -173,6 +185,12 @@ export function useEditor(): EditorContextValue {
     isCreateDialogOpen,
     openCreateDialog,
     closeCreateDialog,
+    isGenerateDialogOpen,
+    openGenerateDialog,
+    closeGenerateDialog,
+    generationJobId,
+    setGenerationJobId,
+    clearGenerationJobId,
     editingMarker,
     openEditDialog,
     closeEditDialog,

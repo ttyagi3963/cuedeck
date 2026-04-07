@@ -6,8 +6,14 @@ import { Plus, MagicWand } from "@/app/_components/ui/icons";
 import MarkerList from "./MarkerList";
 
 export default function AdMarkers() {
-  const { markers, deleteMarker, openCreateDialog, autoCreateMarker } =
-    useEditor();
+  const {
+    markers,
+    deleteMarker,
+    openCreateDialog,
+    openGenerateDialog,
+    autoCreateMarker,
+  } = useEditor();
+
   return (
     <div className="flex w-ad-markers-width shrink-0 flex-col rounded-ad-markers border border-border-default bg-surface">
       {/* Header */}
@@ -22,6 +28,9 @@ export default function AdMarkers() {
 
       {/* Actions */}
       <div className="flex flex-col gap-ad-markers-actions-gap px-ad-markers-padding pt-content-gap-sm pb-ad-markers-padding">
+        <Button variant="outline" className="w-full" onClick={openGenerateDialog}>
+          Generate final video
+        </Button>
         <Button variant="primary" className="w-full" onClick={openCreateDialog}>
           Create ad marker <Plus />
         </Button>

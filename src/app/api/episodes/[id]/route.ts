@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   episodeService,
   storageService,
-} from "@/lib/composition/composition";
+} from "@/lib/container";
 import { NotFoundError } from "@/contracts/errors";
 import { toErrorResponse } from "@/app/api/_lib/errors";
 import { getStoredPathFromUrl } from "@/lib/uploads";
