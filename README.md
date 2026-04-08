@@ -388,23 +388,32 @@ The worker is required for:
 
 ## Hosting Strategy
 
-If deploying this as a real product, I would host it as a split system:
+FlightCast/CueDeck is not a simple CRUD app; it has two very distinct workloads. The Next.js frontend needs to
+serve web requests instantly globally, while the background worker (jobs:worker) needs to run heavy,
+long-lived CPU tasks (FFmpeg video encoding) without timing out. Decoupling for Scale.
 
-- `Vercel` for the Next.js app
-- `Supabase Postgres` for the database
-- `Cloudflare R2` for source media and generated HLS assets
-- a separate worker service for FFmpeg and transcription jobs
-- HLS assets should be served from object storage/CDN, not from the application server
+1. The web app
+   I would host the Next.js product surface on Vercel. It is a strong fit for the editor UI, dashboard,
+   lightweight API routes, previews, and global delivery. The frontend benefits from fast builds, good
+   CDN behavior, and easy Git-based deployment.
 
-### Production topology
+2. The background worker
+   I would run npm run jobs:worker as a separate always-on worker service on Render, Railway, or ECS.
+   Video generation and transcription are long-running, CPU-heavy workloads, and they do not belong in
+   a serverless request lifecycle. Keeping the worker separate allows FFmpeg and transcription jobs
+   to run to completion without web request timeouts.
 
-```text
-Vercel (Next.js UI + API)
-  -> Postgres (episodes, ads, markers, jobs, transcripts)
-  -> Cloudflare R2 (uploads + generated outputs)
+3. The database
+   I would use managed PostgreSQL through Supabase or Neon. In this project,
+   Postgres is not just the application database, it is also the durable job backbone.
+   That makes connection pooling and reliability especially important.
+4. Media storage and HLS delivery
+   I would store originals, generated MP4s, playlists, and HLS segments in Cloudflare R2, fronted by
+   Cloudflare delivery. This is the most important hosting choice for the streaming side of the system.
+   HLS playback depends on serving many small playlist and segment files quickly, and R2 is attractive
+   here because it avoids the egress costs that make S3-based video delivery expensive at scale.
 
-Worker service
-  -> polls Postgres for durable jobs
-  -> runs FFmpeg / transcription
-  -> writes results back to Postgres + R2
-```
+I wouldn't just throw the whole thing on a single DigitalOcean VPS. By decoupling the static web serving (Vercel) from
+the heavy compute tasks (Render) and utilizing zero-egress edge storage (Cloudflare R2) for the HLS chunks, the
+architecture achieves high availability, protects against serverless timeouts, and keeps bandwidth costs predictable
+even if a video goes viral.
