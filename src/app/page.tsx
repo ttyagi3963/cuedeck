@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import {
   dehydrate,
   HydrationBoundary,
@@ -16,6 +17,8 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
+  await connection();
+
   const queryClient = new QueryClient();
   const [episodes, ads] = await Promise.all([
     episodeService.findAll(),
