@@ -33,7 +33,7 @@ export default function VideoPlayer() {
   }, []);
 
   return (
-    <div className="group/video relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+    <div className="group/video relative aspect-video w-full overflow-hidden rounded-dialog bg-video-bg">
       {/* Ad overlay — shown when an ad is playing */}
       {adState.isPlayingAd && adState.currentAd && (
         <AdOverlay ad={adState.currentAd} onEnded={onAdEnded} />
@@ -55,7 +55,7 @@ export default function VideoPlayer() {
             className="absolute bottom-full mb-3 -translate-x-1/2 pointer-events-none"
             style={{ left: `calc(${hoverState.percent}% * 0.92 + 4%)` }}
           >
-            <div className="overflow-hidden rounded-md border-2 border-white/80 shadow-lg">
+            <div className="overflow-hidden rounded-button-primary border-2 border-border-on-primary/80 shadow-lg">
               <video
                 src={episode.sourceUrl}
                 ref={(el) => {
@@ -66,7 +66,7 @@ export default function VideoPlayer() {
                 preload="metadata"
               />
             </div>
-            <div className="mt-1 text-center text-xs font-semibold text-white">
+            <div className="mt-1 text-center text-xs font-semibold text-text-on-primary">
               {formatTime(hoverState.time)}
             </div>
           </div>

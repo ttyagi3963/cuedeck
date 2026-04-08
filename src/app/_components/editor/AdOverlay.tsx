@@ -13,9 +13,9 @@ export default function AdOverlay({ ad, onEnded }: AdOverlayProps) {
   const [isBuffering, setIsBuffering] = useState(true);
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col bg-black">
+    <div className="absolute inset-0 z-20 flex flex-col bg-video-bg">
       {/* Ad badge */}
-      <div className="absolute left-3 top-3 z-30 rounded bg-yellow-500 px-2 py-0.5 text-xs font-bold text-black">
+      <div className="absolute left-3 top-3 z-30 rounded bg-yellow-500 px-2 py-0.5 text-xs font-bold text-text-on-warning">
         Ad &middot; {ad.title}
       </div>
 

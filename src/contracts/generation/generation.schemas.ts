@@ -24,7 +24,24 @@ export const generationPlanSchema = z.object({
   insertions: z.array(resolvedGenerationInsertionSchema),
 });
 
+export const hlsVariantSchema = z.object({
+  name: z.string(),
+  playlist: storedFileSchema,
+  bandwidth: z.number().int().positive(),
+  averageBandwidth: z.number().int().positive(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  segmentCount: z.number().int().nonnegative(),
+});
+
+export const hlsPackageResultSchema = z.object({
+  masterPlaylist: storedFileSchema,
+  variants: z.array(hlsVariantSchema),
+  segmentFileCount: z.number().int().nonnegative(),
+});
+
 export const generationJobResultSchema = z.object({
   storedFile: storedFileSchema,
   segmentCount: z.number().int().nonnegative(),
+  hlsPackage: hlsPackageResultSchema.nullable().default(null),
 });

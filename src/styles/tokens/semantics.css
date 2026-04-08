@@ -81,4 +81,26 @@
   --spacing-toast-max-width: var(--cd-toast-max-width);
   --spacing-toast-padding: var(--cd-spacing-4);
   --radius-toast: var(--cd-radius-lg);
+
+  /* New Tokens */
+  --color-background-hover: var(--cd-color-zinc-100);
+  --color-background-tooltip: var(--cd-color-zinc-800);
+  --color-video-bg: var(--cd-color-black);
+  --color-text-danger-subtle: var(--cd-color-red-400);
+  --color-text-danger-strong: var(--cd-color-red-600);
+  --color-text-on-warning: var(--cd-color-black);
+  --color-border-active: var(--cd-color-zinc-900);
+  --color-border-on-primary: var(--cd-color-white);
+  --color-danger: var(--cd-color-red-500);
+
+  --spacing-content-gap-xxs: var(--cd-spacing-1);
+  --spacing-content-gap-xs: var(--cd-spacing-2);
+  --spacing-content-gap-2-5: var(--cd-spacing-2-5);
+  --spacing-content-gap-md: var(--cd-spacing-3);
+  --spacing-content-gap-xl: var(--cd-spacing-12);
+
+  --spacing-content-p-xs: var(--cd-spacing-2-5);
+  --spacing-content-p-sm: var(--cd-spacing-4);
+  --spacing-content-p-md: var(--cd-spacing-6);
+  --spacing-content-p-lg: var(--cd-spacing-8);
 }

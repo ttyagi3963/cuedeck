@@ -7,7 +7,7 @@ export default function MiniSidebar() {
     <>
       <div className="space-y-3">
         <div className="flex items-center justify-between px-3 py-1.5">
-          <span className="flex items-center gap-3 text-base font-bold text-text-muted">
+          <span className="flex items-center gap-content-gap-md text-base font-bold text-text-muted">
             <PlayCircle className="h-5 w-5" />
             Demo mode
           </span>
@@ -25,7 +25,7 @@ export default function MiniSidebar() {
           <Link
             key={label}
             href={href}
-            className="flex w-full items-center gap-3 px-3 py-1.5 text-base font-bold text-text-muted transition-colors hover:text-text-heading"
+            className="flex w-full items-center gap-content-gap-md px-3 py-1.5 text-base font-bold text-text-muted transition-colors hover:text-text-heading"
           >
             <Icon className="h-5 w-5" />
             {label}

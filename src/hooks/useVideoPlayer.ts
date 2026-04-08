@@ -13,6 +13,12 @@ import type { PlaybackState, VideoPlayerControls } from "@/contracts/video";
 export function useVideoPlayer(src: string): VideoPlayerControls {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const appliedSourceRef = useRef<string | null>(null);
+  const pendingSourceRestoreRef = useRef<{
+    src: string;
+    currentTime: number;
+    shouldResume: boolean;
+  } | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
 
   const [state, setState] = useState<PlaybackState>({
@@ -32,6 +38,16 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
   useEffect(() => {
     const video = videoRef.current;
     if (!video || video !== videoEl || !src) return;
+
+    const previousSource = appliedSourceRef.current;
+    if (previousSource && previousSource !== src) {
+      pendingSourceRestoreRef.current = {
+        src,
+        currentTime: video.currentTime,
+        shouldResume: !video.paused,
+      };
+    }
+    appliedSourceRef.current = src;
 
     const isHlsSource = src.endsWith(".m3u8");
 
@@ -79,7 +95,13 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     const video = videoRef.current;
     if (!video) return;
     video.pause();
-    video.currentTime = Math.max(0, Math.min(time, video.duration || 0));
+    const nextTime = Math.max(0, Math.min(time, video.duration || 0));
+    video.currentTime = nextTime;
+    setState((prev) => ({
+      ...prev,
+      currentTime: nextTime,
+      isPlaying: false,
+    }));
   }, []);
 
   const skip = useCallback((seconds: number) => {
@@ -114,6 +136,20 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       }));
     const onEnded = () => setState((prev) => ({ ...prev, isPlaying: false }));
     const onLoadedData = () => {
+      const pendingRestore = pendingSourceRestoreRef.current;
+      if (pendingRestore && pendingRestore.src === src) {
+        pendingSourceRestoreRef.current = null;
+        video.currentTime = Math.min(
+          pendingRestore.currentTime,
+          video.duration || pendingRestore.currentTime,
+        );
+
+        if (pendingRestore.shouldResume) {
+          void video.play();
+        }
+        return;
+      }
+
       // Show the first frame instead of a black screen
       if (video.currentTime === 0) {
         video.currentTime = 2;
@@ -147,7 +183,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       video.removeEventListener("loadeddata", onLoadedData);
       video.removeEventListener("ended", onEnded);
     };
-  }, [videoEl]);
+  }, [videoEl, src]);
 
   return {
     videoRef: setRef,

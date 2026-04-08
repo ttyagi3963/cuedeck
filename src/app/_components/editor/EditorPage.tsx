@@ -1,16 +1,21 @@
 import type { Episode } from "@/contracts/episode";
-import type { Marker } from "@/contracts/marker";
 import { EditorProvider } from "@/context/EditorContext";
 import EditorShell from "./EditorShell";
 
 type EditorPageProps = {
   episode: Episode;
-  markers: Marker[];
+  initialGenerationJobId?: string | null;
 };
 
-export default function EditorPage({ episode, markers }: EditorPageProps) {
+export default function EditorPage({
+  episode,
+  initialGenerationJobId = null,
+}: EditorPageProps) {
   return (
-    <EditorProvider episode={episode} initialMarkers={markers}>
+    <EditorProvider
+      episode={episode}
+      initialGenerationJobId={initialGenerationJobId}
+    >
       <EditorShell />
     </EditorProvider>
   );

@@ -33,9 +33,9 @@ function WaveformToolbar({
   const canZoomIn = zoom < maxZoom;
 
   return (
-    <div className="flex items-center justify-between rounded-lg  bg-surface px-4 py-2">
+    <div className="flex items-center justify-between rounded-dialog  bg-surface px-4 py-2">
       {/* Left: Undo / Redo */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-content-gap-md">
         <button
           type="button"
           onClick={onUndo}
@@ -57,12 +57,12 @@ function WaveformToolbar({
       </div>
 
       {/* Center: Current timestamp */}
-      <span className="rounded-md border border-border-default px-3 py-1 text-base font-semibold leading-6 tabular-nums text-zinc-500">
+      <span className="rounded-button-primary border border-border-default px-3 py-1 text-base font-semibold leading-6 tabular-nums text-text-muted">
         {formatTimestamp(currentTime)}
       </span>
 
       {/* Right: Zoom controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-content-gap-md">
         <button
           type="button"
           onClick={() => onZoomChange(zoom - WAVE_ZOOM_STEP)}

@@ -79,14 +79,20 @@ export default function EditMarkerDialog({
         : "Select ads for A/B testing";
 
   return (
-    <Dialog open onClose={handleClose} title={title} subtitle={subtitle}>
+    <Dialog
+      open
+      onClose={handleClose}
+      title={title}
+      subtitle={subtitle}
+      size={step === DIALOG_STEPS.ADS ? "wide" : "default"}
+    >
       {step === DIALOG_STEPS.DETAILS && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-content-gap-sm">
           {/* Validation errors */}
           {errors.length > 0 && (
-            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2">
+            <div className="rounded-button-primary border border-danger/30 bg-notification-badge/10 px-3 py-2">
               {errors.map((err) => (
-                <p key={err} className="text-xs font-medium text-red-400">
+                <p key={err} className="text-xs font-medium text-text-danger-subtle">
                   {err}
                 </p>
               ))}
@@ -94,7 +100,7 @@ export default function EditMarkerDialog({
           )}
 
           {/* Time input */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-content-gap-2-5">
             <label
               htmlFor="edit-time"
               className="text-sm font-medium text-text-heading"
@@ -113,20 +119,20 @@ export default function EditMarkerDialog({
           </div>
 
           {/* Current ads */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-content-gap-2-5">
             <span className="text-sm font-medium text-text-heading">
               Assigned ad{adIds.length !== 1 ? "s" : ""}
             </span>
             {selectedAds.length === 0 ? (
               <p className="text-sm text-text-muted">No ads assigned</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-content-gap-xs">
                 {selectedAds.map((ad) => (
                   <div
                     key={ad.id}
-                    className="flex items-center gap-3 rounded-lg border border-border-default p-3"
+                    className="flex items-center gap-content-gap-md rounded-dialog border border-border-default p-3"
                   >
-                    <div className="h-10 w-16 shrink-0 overflow-hidden rounded-md bg-black">
+                    <div className="h-10 w-16 shrink-0 overflow-hidden rounded-button-primary bg-video-bg">
                       <video
                         src={ad.videoUrl}
                         className="h-full w-full object-cover"

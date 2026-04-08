@@ -1,9 +1,9 @@
 export default function WeeklyPlaysCard() {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border-default bg-surface p-4">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-content-gap-xs rounded-ad-markers border border-border-default bg-surface p-content-p-xs md:p-content-p-sm">
+      <div className="flex flex-col gap-content-gap-sm">
+        <div className="flex items-start justify-between gap-content-gap-xs">
+          <div className="flex flex-col gap-content-gap-xs">
             <span className="border-b border-dashed border-border-subtle text-base font-semibold leading-base text-text-heading">
               Weekly plays
             </span>
@@ -11,7 +11,7 @@ export default function WeeklyPlaysCard() {
               738,849
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-content-gap-xs">
             <svg
               width="16"
               height="16"
@@ -58,7 +58,7 @@ export default function WeeklyPlaysCard() {
         </svg>
       </div>
 
-      <div className="flex justify-center gap-1.5">
+      <div className="flex justify-center gap-content-gap-2-5">
         <span className="h-1.5 w-1.5 rounded-full bg-text-heading" />
         <span className="h-1.5 w-1.5 rounded-full bg-border-default" />
         <span className="h-1.5 w-1.5 rounded-full bg-border-default" />

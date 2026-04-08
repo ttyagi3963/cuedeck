@@ -2,6 +2,9 @@ export type {
   ResolvedGenerationAd,
   ResolvedGenerationInsertion,
   GenerationPlan,
+  HlsVariant,
+  HlsPackageResult,
+  GenerateFinalVideoResult,
   GenerationJobResult,
   StartGenerationResult,
 } from "./generation.types";
@@ -12,6 +15,8 @@ export {
 } from "./generation.domain";
 export {
   generationPlanSchema,
+  hlsVariantSchema,
+  hlsPackageResultSchema,
   generationJobResultSchema,
   resolvedGenerationAdSchema,
   resolvedGenerationInsertionSchema,

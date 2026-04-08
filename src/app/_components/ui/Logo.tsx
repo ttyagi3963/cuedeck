@@ -1,6 +1,6 @@
 export default function Logo() {
   return (
-    <span className="flex items-center gap-2 text-lg font-bold text-text-heading">
+    <span className="flex items-center gap-content-gap-xs text-lg font-bold text-text-heading">
       <svg
         width="23"
         height="26"

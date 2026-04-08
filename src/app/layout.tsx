@@ -15,7 +15,7 @@ const manropeSans = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | FlightCast Dynamic Ads Editor ",
+    template: "%s | FlightCast",
     default: "FlightCast Dynamic Ads Editor",
   },
   description: "Dynamic ads editor take-home",
@@ -32,9 +32,9 @@ export default function RootLayout({
         <Providers>
           <div className="mx-auto flex w-full flex-1 flex-col max-w-[var(--layout-max-width)] shadow-sm">
             <TopNavigation />
-            <div className="grid min-w-0 flex-1 grid-cols-[var(--layout-columns)] bg-background-page">
+            <div className="grid min-w-0 flex-1 grid-cols-1 lg:grid-cols-[var(--layout-columns)] bg-background-page relative">
               <SideNavigation />
-              <main className="min-w-0 bg-background-page">{children}</main>
+              <main className="min-w-0 bg-background-page flex flex-col">{children}</main>
             </div>
             <Footer />
           </div>

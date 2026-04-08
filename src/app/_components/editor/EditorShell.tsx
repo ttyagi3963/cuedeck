@@ -1,13 +1,23 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEditor } from "@/context/EditorContext";
 import VideoPlayer from "./VideoPlayer";
 import VideoControls from "./VideoControls";
 import Waveform from "./Wave";
 import AdMarkers from "./AdMarkers";
-import CreateMarkerDialog from "./CreateMarkerDialog";
-import EditMarkerDialog from "./EditMarkerDialog";
-import GenerateEpisodeDialog from "./GenerateEpisodeDialog";
+import GeneratedPreviewPanel from "./GeneratedPreviewPanel";
+import TranscriptPanel from "./TranscriptPanel";
+
+const CreateMarkerDialog = dynamic(() => import("./CreateMarkerDialog"), {
+  ssr: false,
+});
+const EditMarkerDialog = dynamic(() => import("./EditMarkerDialog"), {
+  ssr: false,
+});
+const GenerateEpisodeDialog = dynamic(() => import("./GenerateEpisodeDialog"), {
+  ssr: false,
+});
 
 export default function EditorShell() {
   const {
@@ -19,7 +29,6 @@ export default function EditorShell() {
     closeGenerateDialog,
     generationJobId,
     setGenerationJobId,
-    clearGenerationJobId,
     createMarker,
     autoCreateMarker,
     playback,
@@ -30,7 +39,7 @@ export default function EditorShell() {
 
   return (
     <>
-      <div className="flex min-w-0 gap-content-gap-lg">
+      <div className="flex min-w-0 flex-col-reverse lg:flex-row gap-content-gap-lg">
         <AdMarkers />
         {isCreateDialogOpen && (
           <CreateMarkerDialog
@@ -50,7 +59,6 @@ export default function EditorShell() {
             markerCount={markers.length}
             jobId={generationJobId}
             onJobCreated={setGenerationJobId}
-            onJobCleared={clearGenerationJobId}
           />
         )}
         {editingMarker && (
@@ -60,9 +68,11 @@ export default function EditorShell() {
             onConfirm={editMarker}
           />
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-content-gap-sm rounded-xl border border-border-default bg-surface p-ad-markers-padding">
+        <div className="flex min-w-0 flex-1 flex-col gap-content-gap-sm rounded-ad-markers border border-border-default bg-surface p-content-p-xs md:p-ad-markers-padding">
           <VideoPlayer />
           <VideoControls />
+          <GeneratedPreviewPanel />
+          <TranscriptPanel />
         </div>
       </div>
       <div className="flex min-w-0 flex-col gap-content-gap-lg">

@@ -36,7 +36,7 @@ type MarkerDecorationsProps = {
 };
 
 type PlayheadOverlayProps = {
-  currentTimeRef: React.MutableRefObject<number>;
+  displayTime: number;
   duration: number;
   onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 };
@@ -45,6 +45,10 @@ type TimelineTicksProps = {
   duration: number;
   ticks: number[];
 };
+
+const PLAYHEAD_EDGE_SAFE_INSET_PX = 2;
+const PLAYHEAD_HANDLE_WIDTH_PX = 24;
+const PLAYHEAD_HANDLE_HALF_WIDTH_PX = PLAYHEAD_HANDLE_WIDTH_PX / 2;
 
 const MarkerBadges = memo(function MarkerBadges({
   duration,
@@ -92,7 +96,7 @@ const WaveformMarkerRegions = memo(function WaveformMarkerRegions({
           <div key={`${marker.id}-wave-overlay`}>
             {widthPct > 0 && (
               <div
-                className={`absolute inset-y-0 rounded-md opacity-80 ${meta.waveformRegionClass}`}
+                className={`absolute inset-y-0 rounded-button-primary opacity-80 ${meta.waveformRegionClass}`}
                 style={{
                   left: `${leftPct}%`,
                   width: `${widthPct}%`,
@@ -113,29 +117,24 @@ const WaveformMarkerRegions = memo(function WaveformMarkerRegions({
 });
 
 const PlayheadOverlay = memo(function PlayheadOverlay({
-  currentTimeRef,
+  displayTime,
   duration,
   onPointerDown,
 }: PlayheadOverlayProps) {
-  const currentTime = useEditorPlaybackCurrentTime();
-
-  useEffect(() => {
-    currentTimeRef.current = currentTime;
-  }, [currentTime, currentTimeRef]);
-
   if (duration <= 0) {
     return null;
   }
 
-  const progress = Math.max(0, Math.min(currentTime / duration, 1));
+  const progress = Math.max(0, Math.min(displayTime / duration, 1));
   const left = `${progress * 100}%`;
-  const handleLeft = `clamp(12px, ${left}, calc(100% - 12px))`;
+  const handleLeft = `clamp(${PLAYHEAD_EDGE_SAFE_INSET_PX - 5}px, calc(${left} - ${PLAYHEAD_HANDLE_HALF_WIDTH_PX}px), calc(100% - ${PLAYHEAD_HANDLE_WIDTH_PX + PLAYHEAD_EDGE_SAFE_INSET_PX}px))`;
+  const lineLeft = `clamp(${PLAYHEAD_EDGE_SAFE_INSET_PX + 2}px, ${left}, calc(100% - ${PLAYHEAD_EDGE_SAFE_INSET_PX}px))`;
 
   return (
     <>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30">
         <div
-          className="pointer-events-auto z-50 absolute -top-5 flex -translate-x-1/2 cursor-grab active:cursor-grabbing items-center justify-center rounded-md border border-red-400 bg-red-500 p-0.5 text-white shadow-sm"
+          className="pointer-events-auto z-50 absolute -top-5 flex cursor-grab active:cursor-grabbing items-center justify-center rounded-button-primary border border-red-400 bg-notification-badge p-0.5 text-text-on-primary shadow-sm"
           style={{ left: handleLeft }}
           onPointerDown={onPointerDown}
         >
@@ -144,9 +143,9 @@ const PlayheadOverlay = memo(function PlayheadOverlay({
       </div>
 
       <div
-        className="pointer-events-none absolute z-20 w-0.5 -translate-x-1/2 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.45)]"
+        className="pointer-events-none absolute z-20 w-0.5 -translate-x-1/2 bg-notification-badge shadow-[0_0_10px_rgba(239,68,68,0.45)]"
         style={{
-          left,
+          left: lineLeft,
           top: WAVE_TOP_PADDING,
           height: WAVE_HEIGHT,
         }}
@@ -190,6 +189,7 @@ export default function WaveformTimeline() {
   const wsRef = useRef<WaveSurfer | null>(null);
   const currentTimeRef = useRef(0);
   const { episode, seek: rawSeek } = useEditorPlaybackControls();
+  const currentTime = useEditorPlaybackCurrentTime();
   const duration = useEditorPlaybackDuration();
   const { markers, canUndo, canRedo, undo, redo, resetAdChecks } =
     useEditorMarkers();
@@ -207,10 +207,13 @@ export default function WaveformTimeline() {
   const [zoom, setZoom] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [readySourceUrl, setReadySourceUrl] = useState<string | null>(null);
+  const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
 
   const ticks = useMemo(() => {
     return duration > 0 ? generateTicks(duration) : [];
   }, [duration]);
+  const displayTime = isDraggingPlayhead ? dragTime : currentTime;
   const isWaveformLoading = readySourceUrl !== episode.sourceUrl;
   const trackWidth =
     viewportWidth > 0
@@ -223,6 +226,10 @@ export default function WaveformTimeline() {
   useEffect(() => {
     seekRef.current = seek;
   }, [seek]);
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
 
   useEffect(() => {
     const viewport = scrollViewportRef.current;
@@ -261,9 +268,10 @@ export default function WaveformTimeline() {
       normalize: true,
       interact: true,
       dragToSeek: { debounceTime: 0 },
-      autoScroll: false,
+      autoScroll: true,
       autoCenter: false,
-      hideScrollbar: true,
+      hideScrollbar: false,
+
       url: episode.sourceUrl,
       media: document.createElement("audio"),
     });
@@ -295,6 +303,7 @@ export default function WaveformTimeline() {
       event.preventDefault();
       event.stopPropagation();
       event.currentTarget.setPointerCapture(event.pointerId);
+      setIsDraggingPlayhead(true);
 
       const track = scrollViewportRef.current
         ?.firstElementChild as HTMLElement | null;
@@ -302,6 +311,7 @@ export default function WaveformTimeline() {
 
       let lastSeek = performance.now();
       let lastKnownTime = currentTimeRef.current;
+      setDragTime(lastKnownTime);
 
       const onMove = (pointerEvent: PointerEvent) => {
         const rect = track.getBoundingClientRect();
@@ -310,6 +320,7 @@ export default function WaveformTimeline() {
           Math.min(pointerEvent.clientX - rect.left, rect.width),
         );
         lastKnownTime = (x / rect.width) * duration;
+        setDragTime(lastKnownTime);
 
         const now = performance.now();
         if (now - lastSeek > 150) {
@@ -322,6 +333,7 @@ export default function WaveformTimeline() {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onUp);
         document.removeEventListener("pointercancel", onUp);
+        setIsDraggingPlayhead(false);
         seekRef.current(lastKnownTime);
       };
 
@@ -333,7 +345,7 @@ export default function WaveformTimeline() {
   );
 
   return (
-    <div className="flex min-w-0 w-full flex-col gap-2 rounded-2xl border border-border-default bg-surface p-4">
+    <div className="flex min-w-0 w-full flex-col gap-content-gap-xs rounded-2xl border border-border-default bg-surface p-content-p-xs md:p-content-p-sm">
       <WaveformToolbar
         canUndo={canUndo}
         canRedo={canRedo}
@@ -347,14 +359,14 @@ export default function WaveformTimeline() {
 
       <div
         ref={scrollViewportRef}
-        className="w-full max-w-full overflow-x-auto pt-6"
+        className="w-full max-w-full overflow-x-auto pt-6 ml-4"
       >
         <div
           className="relative min-w-full"
           style={trackWidth ? { width: `${trackWidth}px` } : undefined}
         >
           <PlayheadOverlay
-            currentTimeRef={currentTimeRef}
+            displayTime={displayTime}
             duration={duration}
             onPointerDown={handlePlayheadDrag}
           />
@@ -362,7 +374,7 @@ export default function WaveformTimeline() {
           <MarkerBadges duration={duration} markers={markers} />
 
           <div
-            className="relative z-0 overflow-hidden rounded-lg border-4 border-black bg-fuchsia-300 shadow-inner"
+            className="relative z-0 overflow-hidden rounded-dialog border-4 border-black bg-fuchsia-300 shadow-inner"
             style={{
               height: WAVE_HEIGHT,
               marginTop: WAVE_TOP_PADDING,
@@ -372,7 +384,7 @@ export default function WaveformTimeline() {
 
             {isWaveformLoading && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-fuchsia-300/85 backdrop-blur-[1px]">
-                <div className="flex items-center gap-3 rounded-full border border-white/60 bg-white/80  py-2 shadow-sm">
+                <div className="flex items-center gap-content-gap-md rounded-full border border-border-on-primary/60 bg-surface/80  py-2 shadow-sm">
                   <Spinner size="sm" />
                   <span className="text-sm font-semibold text-text-heading">
                     Building waveform...

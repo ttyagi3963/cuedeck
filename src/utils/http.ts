@@ -3,6 +3,12 @@ import type { Ad } from "@/contracts/ad";
 import type { Episode } from "@/contracts/episode";
 import type { StartGenerationResult } from "@/contracts/generation";
 import type { Job } from "@/contracts/job";
+import type { UploadTarget } from "@/contracts/storage";
+import type {
+  StartTranscriptionResult,
+  TranscriptPanelState,
+} from "@/contracts/transcript";
+import { transcriptPanelStateSchema } from "@/contracts/transcript";
 
 export async function fetchMarkers(episodeId: string): Promise<Marker[]> {
   const res = await fetch(`/api/episodes/${episodeId}/markers`);
@@ -89,6 +95,7 @@ type UploadEpisodeInput = {
   title: string;
   file: File;
   duration: number;
+  onProgress?: (progress: number) => void;
 };
 
 type UploadAdInput = {
@@ -96,21 +103,107 @@ type UploadAdInput = {
   companyName?: string;
   file: File;
   duration: number;
+  onProgress?: (progress: number) => void;
 };
+
+type UploadMediaKind = "episode" | "ad";
+
+type CreateUploadTargetRequest = {
+  kind: UploadMediaKind;
+  title: string;
+  originalName: string;
+  contentType: string;
+  size: number;
+};
+
+function toUploadContentType(file: File): string {
+  return file.type || "video/mp4";
+}
+
+async function requestUploadTarget(
+  input: CreateUploadTargetRequest,
+): Promise<UploadTarget> {
+  const res = await fetch("/api/uploads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(body.error ?? "Failed to prepare upload");
+  }
+
+  return res.json();
+}
+
+function uploadFileToTarget(
+  uploadTarget: UploadTarget,
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(uploadTarget.method, uploadTarget.url);
+
+    for (const [headerName, headerValue] of Object.entries(uploadTarget.headers)) {
+      xhr.setRequestHeader(headerName, headerValue);
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) {
+        return;
+      }
+
+      onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+        return;
+      }
+
+      reject(
+        new Error(
+          xhr.responseText.trim() || `Upload failed with status ${xhr.status}`,
+        ),
+      );
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network error while uploading video"));
+    };
+
+    xhr.send(file);
+  });
+}
 
 export async function uploadEpisode({
   title,
   file,
   duration,
+  onProgress,
 }: UploadEpisodeInput): Promise<Episode> {
-  const formData = new FormData();
-  formData.set("title", title);
-  formData.set("duration", String(duration));
-  formData.set("file", file);
+  const uploadTarget = await requestUploadTarget({
+    kind: "episode",
+    title,
+    originalName: file.name,
+    contentType: toUploadContentType(file),
+    size: file.size,
+  });
+
+  await uploadFileToTarget(uploadTarget, file, onProgress);
 
   const res = await fetch("/api/episodes", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      duration,
+      sourceUrl: uploadTarget.path,
+    }),
   });
 
   if (!res.ok) {
@@ -126,19 +219,27 @@ export async function uploadAd({
   companyName,
   file,
   duration,
+  onProgress,
 }: UploadAdInput): Promise<Ad> {
-  const formData = new FormData();
-  formData.set("title", title);
-  formData.set("duration", String(duration));
-  formData.set("file", file);
+  const uploadTarget = await requestUploadTarget({
+    kind: "ad",
+    title,
+    originalName: file.name,
+    contentType: toUploadContentType(file),
+    size: file.size,
+  });
 
-  if (companyName?.trim()) {
-    formData.set("companyName", companyName.trim());
-  }
+  await uploadFileToTarget(uploadTarget, file, onProgress);
 
   const res = await fetch("/api/ads", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      companyName: companyName?.trim() || undefined,
+      duration,
+      videoUrl: uploadTarget.path,
+    }),
   });
 
   if (!res.ok) {
@@ -191,4 +292,32 @@ export async function fetchJob(jobId: string): Promise<Job> {
   }
 
   return res.json();
+}
+
+export async function startTranscription(
+  episodeId: string,
+): Promise<StartTranscriptionResult> {
+  const res = await fetch(`/api/episodes/${episodeId}/transcribe`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(body.error ?? "Failed to start transcription");
+  }
+
+  return res.json();
+}
+
+export async function fetchTranscriptPanelState(
+  episodeId: string,
+): Promise<TranscriptPanelState> {
+  const res = await fetch(`/api/episodes/${episodeId}/transcript`);
+
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(body.error ?? "Failed to fetch transcript");
+  }
+
+  return transcriptPanelStateSchema.parse(await res.json());
 }

@@ -1,21 +1,41 @@
+import type { Metadata } from "next";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 import { adService, episodeService } from "@/lib/container";
+import { resolveAdMediaUrls, resolveEpisodeMediaUrls } from "@/lib/media/resolveMediaUrls";
+import { storageService } from "@/lib/container";
 import AdList from "./_components/dashboard/AdList";
 import EpisodeList from "./_components/dashboard/EpisodeList";
-import UploadMediaForm from "./_components/upload/UploadMediaForm";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Manage episodes, ads, and upload new media in FlightCast.",
+};
 
 export default async function DashboardPage() {
-  const episodes = await episodeService.findAll();
-  const ads = await adService.findAll();
+  const queryClient = new QueryClient();
+  const [episodes, ads] = await Promise.all([
+    episodeService.findAll(),
+    adService.findAll(),
+  ]);
+  const [resolvedEpisodes, resolvedAds] = await Promise.all([
+    resolveEpisodeMediaUrls(episodes, storageService),
+    resolveAdMediaUrls(ads, storageService),
+  ]);
+  queryClient.setQueryData(["episodes"], resolvedEpisodes);
+  queryClient.setQueryData(["ads"], resolvedAds);
 
   return (
-    <div className="flex flex-col gap-8 p-16">
-      <h1 className="text-3xl font-bold text-text-heading">Dashboard</h1>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <UploadMediaForm kind="episode" id="upload-episode" />
-        <UploadMediaForm kind="ad" id="upload-ad" />
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <div className="flex flex-col gap-page-gap p-content-p-xs lg:p-page-padding">
+        <h1 className="text-3xl font-bold text-text-heading">Dashboard</h1>
+
+        <EpisodeList />
+        <AdList />
       </div>
-      <EpisodeList episodes={episodes} />
-      <AdList ads={ads} />
-    </div>
+    </HydrationBoundary>
   );
 }

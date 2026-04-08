@@ -21,13 +21,19 @@ type EditorUIContextValue = {
 const EditorUIContext = createContext<EditorUIContextValue | null>(null);
 
 type EditorUIProviderProps = {
+  initialGenerationJobId?: string | null;
   children: ReactNode;
 };
 
-export function EditorUIProvider({ children }: EditorUIProviderProps) {
+export function EditorUIProvider({
+  initialGenerationJobId = null,
+  children,
+}: EditorUIProviderProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
-  const [generationJobId, setGenerationJobId] = useState<string | null>(null);
+  const [generationJobId, setGenerationJobId] = useState<string | null>(
+    initialGenerationJobId,
+  );
   const [editingMarker, setEditingMarker] = useState<Marker | null>(null);
 
   return (

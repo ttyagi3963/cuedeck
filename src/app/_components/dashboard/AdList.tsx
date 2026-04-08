@@ -8,16 +8,16 @@ import { useDeleteAd } from "@/hooks/useDashboardMutations";
 import { useToast } from "@/hooks/useToast";
 import Button from "@/app/_components/ui/Button";
 import Dialog from "@/app/_components/ui/Dialog";
+import UploadMediaForm from "@/app/_components/upload/UploadMediaForm";
+import { UPLOAD_MEDIA_FORM_COPY } from "@/lib/constants";
 
-type AdListProps = {
-  ads: Ad[];
-};
-
-export default function AdList({ ads: initialAds }: AdListProps) {
-  const { data: ads = [] } = useAds(initialAds);
+export default function AdList() {
+  const { data: ads = [] } = useAds();
   const deleteAdMutation = useDeleteAd();
   const { toast } = useToast();
   const [adToDelete, setAdToDelete] = useState<Ad | null>(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const uploadCopy = UPLOAD_MEDIA_FORM_COPY.ad;
 
   async function handleConfirmDelete() {
     if (!adToDelete) return;
@@ -34,7 +34,7 @@ export default function AdList({ ads: initialAds }: AdListProps) {
   }
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-content-gap-sm border border-border-default rounded-ad-markers bg-surface p-content-p-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-text-heading">Ads</h2>
         <span className="text-sm text-text-muted">
@@ -43,57 +43,88 @@ export default function AdList({ ads: initialAds }: AdListProps) {
       </div>
 
       {ads.length === 0 ? (
-        <div className="rounded-xl border border-border-default bg-surface p-6 text-sm text-text-muted">
-          No ads uploaded yet.
+        <div className="flex flex-1 flex-col items-center justify-center gap-content-gap-sm py-20">
+          <h3 className="text-xl font-bold text-text-heading">
+            No Ads Present
+          </h3>
+          <Button variant="primary" onClick={() => setIsUploadOpen(true)}>
+            {uploadCopy.emptyStateCtaLabel}
+          </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          {ads.map((ad) => (
-            <div
-              key={ad.id}
-              className="flex flex-col gap-3 rounded-xl border border-border-default bg-surface p-4"
-            >
-              <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-                <video
-                  src={ad.videoUrl}
-                  className="h-full w-full object-cover"
-                  preload="metadata"
-                  muted
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <h3 className="line-clamp-2 text-sm font-semibold text-text-heading">
-                  {ad.title}
-                </h3>
-                {ad.companyName && (
-                  <p className="text-xs font-medium text-text-muted">
-                    {ad.companyName}
+        <>
+          <div className="grid grid-cols-1 gap-dialog-gap xl:grid-cols-3 ">
+            {ads.map((ad) => (
+              <div
+                key={ad.id}
+                className="flex flex-col gap-content-gap-md rounded-ad-markers border border-border-default bg-surface p-[10px] md:p-content-p-sm"
+              >
+                <div className="aspect-video w-full overflow-hidden rounded-dialog bg-video-bg">
+                  <video
+                    src={ad.videoUrl}
+                    className="h-full w-full object-cover"
+                    preload="metadata"
+                    muted
+                  />
+                </div>
+                <div className="flex flex-col gap-content-gap-xxs">
+                  <h3 className="line-clamp-2 text-sm font-semibold text-text-heading">
+                    {ad.title}
+                  </h3>
+                  {ad.companyName ? (
+                    <p className="text-xs font-medium text-text-muted">
+                      {ad.companyName}
+                    </p>
+                  ) : (
+                    <p className="text-xs font-medium text-text-muted">
+                      <i>No company name</i>
+                    </p>
+                  )}
+                  <p className="text-xs text-text-muted">
+                    {formatDurationShort(ad.duration)}
                   </p>
-                )}
-                <p className="text-xs text-text-muted">
-                  {formatDurationShort(ad.duration)}
-                </p>
-              </div>
+                </div>
 
-              <div className="flex gap-3">
-                <a
-                  href="#upload-ad"
-                  className="inline-flex flex-1 items-center justify-center rounded-md border border-border-default bg-surface px-4 py-2 text-base font-semibold text-text-heading"
-                >
-                  Edit
-                </a>
-                <Button
-                  variant="danger"
-                  className="flex-1 justify-center rounded-md px-4 py-2"
-                  onClick={() => setAdToDelete(ad)}
-                >
-                  Delete
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-content-gap-md">
+                  {/* <a
+                    href="#upload-ad"
+                    className="inline-flex flex-1 items-center justify-center rounded-button-primary border border-border-default bg-surface px-4 py-2 text-base font-semibold text-text-heading"
+                  >
+                    Edit
+                  </a> */}
+                  <Button
+                    variant="danger"
+                    className="flex-1 justify-center rounded-button-primary px-4 py-2"
+                    onClick={() => setAdToDelete(ad)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <div className="flex justify-center my-content-p-xs border border-dashed border-border-default rounded-ad-markers p-content-p-sm">
+            <Button variant="primary" onClick={() => setIsUploadOpen(true)}>
+              {uploadCopy.dashboardCtaLabel}
+            </Button>
+          </div>
+        </>
       )}
+
+      <Dialog
+        open={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        title={uploadCopy.title}
+        subtitle={uploadCopy.description}
+      >
+        <UploadMediaForm
+          key={String(isUploadOpen)}
+          kind="ad"
+          showHeader={false}
+          onSuccess={() => setIsUploadOpen(false)}
+        />
+      </Dialog>
 
       <Dialog
         open={adToDelete !== null}

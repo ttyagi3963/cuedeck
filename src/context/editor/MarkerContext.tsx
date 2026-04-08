@@ -23,7 +23,10 @@ import {
   useEditorPlaybackControls,
   useEditorPlaybackCurrentTime,
   useEditorPlaybackDuration,
+  useEditorPlaybackSourceKind,
 } from "./PlaybackContext";
+
+const MARKER_PLACEMENT_SEEK_BUFFER_SEC = 2;
 
 function formatAutoTime(sec: number): string {
   const h = Math.floor(sec / 3600);
@@ -73,7 +76,6 @@ const MarkerContext = createContext<MarkerContextValue | null>(null);
 
 type MarkerProviderProps = {
   episodeId: string;
-  initialMarkers: Marker[];
   children: ReactNode;
 };
 
@@ -81,33 +83,35 @@ type MarkerPlaybackSyncProps = {
   adCheck: (currentTime: number) => void;
   currentTimeRef: React.MutableRefObject<number>;
   isPlayingAd: boolean;
+  playbackSourceKind: "source" | "generated";
 };
 
 function MarkerPlaybackSync({
   adCheck,
   currentTimeRef,
   isPlayingAd,
+  playbackSourceKind,
 }: MarkerPlaybackSyncProps) {
   const currentTime = useEditorPlaybackCurrentTime();
 
   useEffect(() => {
     currentTimeRef.current = currentTime;
-    if (!isPlayingAd) {
+    if (!isPlayingAd && playbackSourceKind === "source") {
       adCheck(currentTime);
     }
-  }, [currentTime, adCheck, currentTimeRef, isPlayingAd]);
+  }, [currentTime, adCheck, currentTimeRef, isPlayingAd, playbackSourceKind]);
 
   return null;
 }
 
 export function MarkerProvider({
   episodeId,
-  initialMarkers,
   children,
 }: MarkerProviderProps) {
-  const { pause, play } = useEditorPlaybackControls();
+  const { pause, play, seek } = useEditorPlaybackControls();
+  const playbackSourceKind = useEditorPlaybackSourceKind();
   const duration = useEditorPlaybackDuration();
-  const { data: markers = initialMarkers } = useMarkers(episodeId, initialMarkers);
+  const { data: markers = [] } = useMarkers(episodeId);
   const createMutation = useCreateMarker(episodeId);
   const deleteMutation = useDeleteMarker(episodeId);
   const updateMutation = useUpdateMarker(episodeId);
@@ -230,17 +234,50 @@ export function MarkerProvider({
     void rawRedo().catch(() => {});
   }
 
+  function skipPastPlacedMarker(markerTime: number, adIds: string[]) {
+    if (playbackSourceKind !== "source") {
+      return;
+    }
+
+    const longestSelectedAdDuration = adIds.reduce((maxDuration, adId) => {
+      const matchingAd = allAds.find((ad) => ad.id === adId);
+      return matchingAd ? Math.max(maxDuration, matchingAd.duration) : maxDuration;
+    }, 0);
+    const targetTime = Math.min(
+      duration,
+      markerTime + longestSelectedAdDuration + MARKER_PLACEMENT_SEEK_BUFFER_SEC,
+    );
+
+    if (targetTime <= markerTime) {
+      return;
+    }
+
+    resetAdChecks(targetTime);
+    seek(targetTime);
+  }
+
   function createMarker(type: MarkerType, adIds: string[]) {
     const markerTime = currentTimeRef.current;
     const snapshot = { timeSec: markerTime, type, adIds };
+    const hasAds = adIds.length > 0 && playbackSourceKind === "source";
 
     void (async () => {
+      // If we are placing a marker with ads, suppress the auto-injection
+      // so the overlay doesn't "hijack" the player immediately.
+      if (hasAds) {
+        suppressAdChecks();
+      }
+
       try {
         const marker = await createMarkerRecord(snapshot, {
           successMessage: "Marker created",
         });
         const target = getMarkerTarget(marker.id);
         syncMarkerTargetId(target, marker.id);
+
+        if (hasAds) {
+          skipPastPlacedMarker(markerTime, adIds);
+        }
 
         push({
           undo: () => deleteMarkerRecord(target.currentId),
@@ -249,7 +286,14 @@ export function MarkerProvider({
             syncMarkerTargetId(target, recreatedMarker.id);
           },
         });
-      } catch {}
+      } catch {
+        // Silently fail if creation fails; toast is handled in createMarkerRecord
+      } finally {
+        if (hasAds) {
+          // Re-enable ad checks after the seek is finished
+          unsuppressAdChecks();
+        }
+      }
     })();
   }
 
@@ -409,12 +453,17 @@ export function MarkerProvider({
     }
   }
 
+  useEffect(() => {
+    resetAdChecks(currentTimeRef.current);
+  }, [playbackSourceKind, resetAdChecks]);
+
   return (
     <>
       <MarkerPlaybackSync
         adCheck={adCheck}
         currentTimeRef={currentTimeRef}
         isPlayingAd={adState.isPlayingAd}
+        playbackSourceKind={playbackSourceKind}
       />
       <MarkerContext.Provider
         value={{

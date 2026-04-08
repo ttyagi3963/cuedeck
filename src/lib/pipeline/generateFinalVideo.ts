@@ -1,5 +1,3 @@
-import "server-only";
-
 import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
@@ -38,15 +36,7 @@ export type GenerateFinalVideoResult = {
   segmentCount: number;
 };
 
-function sanitizePathSegment(value: string) {
-  const sanitized = value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return sanitized.length > 0 ? sanitized : "video";
-}
+import { sanitizePathSegment } from "@/utils/paths";
 
 function buildGeneratedVideoFileName(episodeId: string) {
   return `${sanitizePathSegment(episodeId)}/${Date.now()}-final-video-${randomUUID()}.mp4`;

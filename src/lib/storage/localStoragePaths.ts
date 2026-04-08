@@ -1,4 +1,5 @@
 import path from "node:path";
+import { normalizeStoredPath } from "@/utils/paths";
 
 export const LOCAL_STORAGE_PUBLIC_PREFIX = "/videos/";
 export const LOCAL_STORAGE_VIDEOS_ROOT = path.join(
@@ -6,10 +7,6 @@ export const LOCAL_STORAGE_VIDEOS_ROOT = path.join(
   "public",
   "videos",
 );
-
-function normalizeStoredPath(filePath: string) {
-  return filePath.replace(/\\/g, "/").replace(/^\/+/, "");
-}
 
 export function buildLocalStoragePublicUrl(filePath: string) {
   return `${LOCAL_STORAGE_PUBLIC_PREFIX}${normalizeStoredPath(filePath)}`;

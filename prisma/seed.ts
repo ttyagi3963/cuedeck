@@ -20,44 +20,44 @@ async function main() {
   await prisma.episode.deleteMany();
 
   // Create episodes
-  const episode1 = await prisma.episode.create({
-    data: {
-      title:
-        "The Longevity Expert: The Truth About Ozempic, The Magic Weight Loss Drug & The Link Between Milk & Cancer!",
-      sourceUrl: "/videos/episodes/episode1.MP4",
-      duration: 634,
-      muxStatus: "PENDING",
-    },
-  });
+  // const episode1 = await prisma.episode.create({
+  //   data: {
+  //     title:
+  //       "The Longevity Expert: The Truth About Ozempic, The Magic Weight Loss Drug & The Link Between Milk & Cancer!",
+  //     sourceUrl: "/videos/episodes/episode1.MP4",
+  //     duration: 634,
+  //     muxStatus: "PENDING",
+  //   },
+  // });
 
-  const episode2 = await prisma.episode.create({
-    data: {
-      title:
-        "Deep Sleep Secrets: What Neuroscience Actually Says About Rest & Recovery",
-      sourceUrl: "/videos/episodes/episode2.mp4",
-      duration: 596,
-      muxStatus: "PENDING",
-    },
-  });
+  // const episode2 = await prisma.episode.create({
+  //   data: {
+  //     title:
+  //       "Deep Sleep Secrets: What Neuroscience Actually Says About Rest & Recovery",
+  //     sourceUrl: "/videos/episodes/episode2.mp4",
+  //     duration: 596,
+  //     muxStatus: "PENDING",
+  //   },
+  // });
 
-  // Create ads
-  const ad1 = await prisma.ad.create({
-    data: {
-      title: "Night Boost (Intro) v1",
-      videoUrl: "/videos/ads/ad1.mp4",
-      duration: 8,
-      companyName: "Green Coffee",
-    },
-  });
+  // // Create ads
+  // const ad1 = await prisma.ad.create({
+  //   data: {
+  //     title: "Night Boost (Intro) v1",
+  //     videoUrl: "/videos/ads/ad1.mp4",
+  //     duration: 8,
+  //     companyName: "Green Coffee",
+  //   },
+  // });
 
-  const ad2 = await prisma.ad.create({
-    data: {
-      title: "BetterCreative Production",
-      videoUrl: "/videos/ads/ad2.mp4",
-      duration: 8,
-      companyName: "Little Italy",
-    },
-  });
+  // const ad2 = await prisma.ad.create({
+  //   data: {
+  //     title: "BetterCreative Production",
+  //     videoUrl: "/videos/ads/ad2.mp4",
+  //     duration: 8,
+  //     companyName: "Little Italy",
+  //   },
+  // });
 
   // Episode 1 markers
   // const e1m1 = await prisma.marker.create({

@@ -5,8 +5,10 @@ import path from "node:path";
 
 import type { IStorageRepository } from "./IStorageRepository";
 import type {
+  CreateUploadTargetInput,
   SaveFileInput,
   StoredFile,
+  UploadTarget,
 } from "@/contracts/storage/storage.types";
 import {
   buildLocalStoragePublicUrl,
@@ -14,6 +16,32 @@ import {
   getLocalStoragePathFromPublicUrl,
 } from "@/lib/storage/localStoragePaths";
 import { InfrastructureError } from "@/lib/errors/InfrastructureError";
+import { normalizeStoredPath } from "@/utils/paths";
+
+const UPLOAD_TARGET_TTL_SEC = 60 * 60;
+
+function resolveStoredPath(filePathOrUrl: string): string {
+  const storedPath = getLocalStoragePathFromPublicUrl(filePathOrUrl);
+  if (storedPath) {
+    return normalizeStoredPath(storedPath);
+  }
+
+  try {
+    const parsedUrl = new URL(filePathOrUrl);
+    if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+      throw new InfrastructureError(
+        `Unsupported local media source: ${filePathOrUrl}`,
+        "UNSUPPORTED_MEDIA_SOURCE",
+      );
+    }
+  } catch (error) {
+    if (error instanceof InfrastructureError) {
+      throw error;
+    }
+  }
+
+  return normalizeStoredPath(filePathOrUrl);
+}
 
 export class LocalStorageRepositoryImpl implements IStorageRepository {
   async save(file: SaveFileInput): Promise<StoredFile> {
@@ -32,12 +60,39 @@ export class LocalStorageRepositoryImpl implements IStorageRepository {
     };
   }
 
+  async createUploadTarget(file: CreateUploadTargetInput): Promise<UploadTarget> {
+    const storedPath = normalizeStoredPath(`${file.bucket}/${file.fileName}`);
+
+    return {
+      path: storedPath,
+      method: "PUT",
+      url: `/api/uploads/local?path=${encodeURIComponent(storedPath)}`,
+      headers: {
+        "Content-Type": file.contentType,
+      },
+      expiresAt: new Date(
+        Date.now() + UPLOAD_TARGET_TTL_SEC * 1000,
+      ).toISOString(),
+    };
+  }
+
   async getPublicUrl(filePath: string): Promise<string> {
-    return buildLocalStoragePublicUrl(filePath);
+    return buildLocalStoragePublicUrl(resolveStoredPath(filePath));
+  }
+
+  async exists(filePath: string): Promise<boolean> {
+    const fullFilePath = getLocalStorageAbsolutePath(resolveStoredPath(filePath));
+
+    try {
+      await fs.access(fullFilePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async delete(filePath: string): Promise<void> {
-    const fullFilePath = getLocalStorageAbsolutePath(filePath);
+    const fullFilePath = getLocalStorageAbsolutePath(resolveStoredPath(filePath));
 
     try {
       await fs.unlink(fullFilePath);
@@ -49,15 +104,7 @@ export class LocalStorageRepositoryImpl implements IStorageRepository {
   }
 
   async provideLocalCopy(url: string): Promise<string> {
-    const storedPath = getLocalStoragePathFromPublicUrl(url);
-    if (!storedPath) {
-      throw new InfrastructureError(
-        `Unsupported local media source: ${url}`,
-        "UNSUPPORTED_MEDIA_SOURCE",
-      );
-    }
-
-    const fullFilePath = getLocalStorageAbsolutePath(storedPath);
+    const fullFilePath = getLocalStorageAbsolutePath(resolveStoredPath(url));
 
     try {
       await fs.access(fullFilePath);

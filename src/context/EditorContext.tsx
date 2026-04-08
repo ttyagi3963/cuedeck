@@ -8,6 +8,7 @@ import type { AdInjectionState } from "@/hooks/useAdInjection";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import {
   PlaybackProvider,
+  type PlaybackSourceKind,
   useEditorPlaybackControls,
   useEditorPlaybackCurrentTime,
   useEditorPlaybackDuration,
@@ -28,6 +29,12 @@ type EditorContextValue = {
   skip: (seconds: number) => void;
   jumpToStart: () => void;
   jumpToEnd: () => void;
+  playbackSourceKind: PlaybackSourceKind;
+  hasGeneratedPlaybackSource: boolean;
+  setGeneratedPlaybackSource: (url: string) => void;
+  clearGeneratedPlaybackSource: () => void;
+  playOriginalSource: () => void;
+  playGeneratedSource: () => void;
   markers: Marker[];
   createMarker: (type: MarkerType, adIds: string[]) => void;
   autoCreateMarker: () => void;
@@ -58,7 +65,7 @@ type EditorContextValue = {
 
 type EditorProviderProps = {
   episode: Episode;
-  initialMarkers: Marker[];
+  initialGenerationJobId?: string | null;
   children: ReactNode;
 };
 
@@ -77,13 +84,13 @@ function EditorHotkeys({ children }: { children: ReactNode }) {
 
 export function EditorProvider({
   episode,
-  initialMarkers,
+  initialGenerationJobId = null,
   children,
 }: EditorProviderProps) {
   return (
     <PlaybackProvider episode={episode}>
-      <MarkerProvider episodeId={episode.id} initialMarkers={initialMarkers}>
-        <EditorUIProvider>
+      <MarkerProvider episodeId={episode.id}>
+        <EditorUIProvider initialGenerationJobId={initialGenerationJobId}>
           <EditorHotkeys>{children}</EditorHotkeys>
         </EditorUIProvider>
       </MarkerProvider>
@@ -100,6 +107,12 @@ export function useEditor(): EditorContextValue {
     toggle,
     seek: rawSeek,
     skip,
+    playbackSourceKind,
+    hasGeneratedPlaybackSource,
+    setGeneratedPlaybackSource,
+    clearGeneratedPlaybackSource,
+    playOriginalSource,
+    playGeneratedSource,
   } = useEditorPlaybackControls();
   const currentTime = useEditorPlaybackCurrentTime();
   const duration = useEditorPlaybackDuration();
@@ -176,6 +189,12 @@ export function useEditor(): EditorContextValue {
     skip,
     jumpToStart,
     jumpToEnd,
+    playbackSourceKind,
+    hasGeneratedPlaybackSource,
+    setGeneratedPlaybackSource,
+    clearGeneratedPlaybackSource,
+    playOriginalSource,
+    playGeneratedSource,
     markers,
     createMarker,
     autoCreateMarker,
@@ -212,6 +231,7 @@ export {
   useEditorPlaybackDuration,
   useEditorPlaybackIsPlaying,
   useEditorPlaybackIsReady,
+  useEditorPlaybackSourceKind,
 } from "./editor/PlaybackContext";
 export { useEditorMarkers } from "./editor/MarkerContext";
 export { useEditorUI } from "./editor/EditorUIContext";

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function EditorNotFound() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-16">
+    <div className="flex flex-1 flex-col items-center justify-center gap-content-gap-sm p-16">
       <h1 className="text-2xl font-bold text-text-heading">
         Episode not found
       </h1>

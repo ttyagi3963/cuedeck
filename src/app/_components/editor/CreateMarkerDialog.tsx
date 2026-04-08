@@ -68,6 +68,7 @@ export default function CreateMarkerDialog({
       onClose={handleClose}
       title={MARKER_DIALOG_STEP_TITLES[step]}
       subtitle={subtitleForStep(step, currentTime, selectedType)}
+      size={step === DIALOG_STEPS.ADS ? "wide" : "default"}
     >
       {step === DIALOG_STEPS.TYPE && (
         <>

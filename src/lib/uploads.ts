@@ -1,6 +1,5 @@
 import path from "node:path";
 import type { StorageBucket } from "@/contracts/storage";
-import { getLocalStoragePathFromPublicUrl } from "@/lib/storage/localStoragePaths";
 
 function slugify(value: string): string {
   return value
@@ -48,8 +47,4 @@ export function parseVideoFile(value: FormDataEntryValue | null): File | null {
   if (value.size <= 0) return null;
   if (!value.type.startsWith("video/")) return null;
   return value;
-}
-
-export function getStoredPathFromUrl(url: string): string | null {
-  return getLocalStoragePathFromPublicUrl(url);
 }

@@ -13,7 +13,7 @@ export default function EpisodeHeader({
   publishedAt,
 }: EpisodeHeaderProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-content-gap-sm">
       <Link
         href={ROUTES.ads}
         className="text-sm font-semibold text-text-muted hover:text-text-heading"

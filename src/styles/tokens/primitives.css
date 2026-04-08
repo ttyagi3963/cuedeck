@@ -1,15 +1,18 @@
 /* src/styles/tokens/primitives.css */
 :root {
   --cd-color-zinc-50: #fafafa;
+  --cd-color-zinc-100: #f4f4f5;
   --cd-color-zinc-200: #e4e4e7;
   --cd-color-zinc-300: #d4d4d8;
   --cd-color-zinc-500: #71717a;
   --cd-color-zinc-800: #27272a;
   --cd-color-zinc-900: #18181b;
+  --cd-color-black: #000000;
   --cd-color-white: #ffffff;
   --cd-color-red-300: #fca5a5;
   --cd-color-red-400: #f87171;
   --cd-color-red-500: #ef4444;
+  --cd-color-red-600: #dc2626;
   --cd-color-red-900: #7f1d1d;
   --cd-color-green-100: #dcfce7;
   --cd-color-green-200: #bbf7d0;
@@ -44,13 +47,17 @@
   --cd-spacing-4: 16px;
   --cd-spacing-6: 24px;
   --cd-spacing-8: 32px;
+  --cd-spacing-12: 48px;
   --cd-spacing-16: 64px;
+  --cd-spacing-2-5: 10px;
 
   --cd-radius-sm: 3px;
   --cd-radius-md: 6px;
   --cd-radius-lg: 8px;
   --cd-radius-xl: 16px;
+  --cd-radius-full: 9999px;
 
+  --cd-color-black: #000000;
   --cd-sidebar-width: 320px;
   --cd-nav-height: 80px;
   --cd-layout-max-width: 1680px;

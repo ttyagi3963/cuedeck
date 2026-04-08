@@ -24,5 +24,12 @@ export function toErrorResponse(
     );
   }
 
-  return NextResponse.json({ error: fallbackMessage }, { status: 500 });
+  console.error(error);
+
+  const message =
+    process.env.NODE_ENV !== "production" && error instanceof Error
+      ? error.message
+      : fallbackMessage;
+
+  return NextResponse.json({ error: message }, { status: 500 });
 }

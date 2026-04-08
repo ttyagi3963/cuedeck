@@ -5,7 +5,6 @@ import {
 } from "@/lib/container";
 import { NotFoundError } from "@/contracts/errors";
 import { toErrorResponse } from "@/app/api/_lib/errors";
-import { getStoredPathFromUrl } from "@/lib/uploads";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -21,11 +20,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
 
     await episodeService.delete(id);
-
-    const storedPath = getStoredPathFromUrl(episode.sourceUrl);
-    if (storedPath) {
-      await storageService.delete(storedPath);
-    }
+    await storageService.delete(episode.sourceUrl);
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

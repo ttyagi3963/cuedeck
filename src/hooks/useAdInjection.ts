@@ -25,7 +25,10 @@ export interface AdInjectionControls {
   unsuppress: () => void;
 }
 
-function resolveAd(marker: Marker): Ad | null {
+function resolveAd(
+  marker: Marker,
+  abPlayCounts: Map<string, number>,
+): Ad | null {
   const ads = marker.markerAds;
   if (!ads || ads.length === 0) return null;
 
@@ -37,8 +40,14 @@ function resolveAd(marker: Marker): Ad | null {
       return ads[Math.floor(Math.random() * ads.length)].ad;
 
     case "AB": {
-      const sorted = [...ads].sort((a, b) => a.playCount - b.playCount);
-      return sorted[0].ad;
+      const withCounts = ads.map((ma) => ({
+        markerAd: ma,
+        count: abPlayCounts.get(ma.id) ?? 0,
+      }));
+      const minCount = Math.min(...withCounts.map((w) => w.count));
+      const tied = withCounts.filter((w) => w.count === minCount);
+      const pick = tied[Math.floor(Math.random() * tied.length)];
+      return pick.markerAd.ad;
     }
   }
 }
@@ -59,6 +68,10 @@ export function useAdInjection(
   const resumeRef = useRef<(() => void) | null>(null);
   const suppressedRef = useRef(false);
   const suppressEndTimeRef = useRef(0);
+  const currentMarkerAdIdRef = useRef<string | null>(null);
+  const [abPlayCounts, setAbPlayCounts] = useState<Map<string, number>>(
+    () => new Map(),
+  );
 
   const activeMarkerIds = useMemo(
     () => new Set(markers.map((marker) => marker.id)),
@@ -92,24 +105,10 @@ export function useAdInjection(
     (currentTime: number) => {
       if (adState.isPlayingAd) return;
 
-      // Stay suppressed until cooldown expires, then mark all as played
+      // Stay suppressed until cooldown expires, then resume normal checks.
       if (suppressedRef.current) {
         if (Date.now() < suppressEndTimeRef.current) return;
         suppressedRef.current = false;
-        setPlayedMarkerIds((prev) => {
-          const next = new Set(prev);
-          let changed = false;
-
-          for (const marker of markers) {
-            if (!next.has(marker.id)) {
-              next.add(marker.id);
-              changed = true;
-            }
-          }
-
-          return changed ? next : prev;
-        });
-        return;
       }
 
       for (const marker of markers) {
@@ -117,11 +116,16 @@ export function useAdInjection(
           currentTime >= marker.timeSec &&
           !syncedPlayedMarkerIds.has(marker.id)
         ) {
-          const ad = resolveAd(marker);
+          const ad = resolveAd(marker, abPlayCounts);
           if (!ad) {
             addPlayedMarkerId(marker.id);
             continue;
           }
+
+          const matchedMarkerAd = marker.markerAds.find(
+            (ma) => ma.ad.id === ad.id,
+          );
+          currentMarkerAdIdRef.current = matchedMarkerAd?.id ?? null;
 
           addPlayedMarkerId(marker.id);
           pause();
@@ -138,10 +142,21 @@ export function useAdInjection(
       adState.isPlayingAd,
       syncedPlayedMarkerIds,
       addPlayedMarkerId,
+      abPlayCounts,
     ],
   );
 
   const onAdEnded = useCallback(() => {
+    const markerAdId = currentMarkerAdIdRef.current;
+    if (markerAdId) {
+      setAbPlayCounts((prev) => {
+        const next = new Map(prev);
+        next.set(markerAdId, (prev.get(markerAdId) ?? 0) + 1);
+        return next;
+      });
+      currentMarkerAdIdRef.current = null;
+    }
+
     setAdState({ isPlayingAd: false, currentAd: null });
     resumeRef.current?.();
     resumeRef.current = null;
@@ -158,15 +173,20 @@ export function useAdInjection(
         }
         return keep;
       });
+
       setAdState({ isPlayingAd: false, currentAd: null });
       resumeRef.current = null;
+      currentMarkerAdIdRef.current = null;
     },
     [markers],
   );
 
-  const markAsPlayed = useCallback((markerId: string) => {
-    addPlayedMarkerId(markerId);
-  }, [addPlayedMarkerId]);
+  const markAsPlayed = useCallback(
+    (markerId: string) => {
+      addPlayedMarkerId(markerId);
+    },
+    [addPlayedMarkerId],
+  );
 
   const suppress = useCallback(() => {
     suppressedRef.current = true;

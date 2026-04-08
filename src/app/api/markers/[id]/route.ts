@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { markerService } from "@/lib/container";
+import { markerService, storageService } from "@/lib/container";
 import { toErrorResponse } from "@/app/api/_lib/errors";
+import { resolveMarkerMediaUrl } from "@/lib/media/resolveMediaUrls";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -12,7 +13,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const body = await request.json();
     const marker = await markerService.update(id, body);
-    return NextResponse.json(marker);
+    return NextResponse.json(await resolveMarkerMediaUrl(marker, storageService));
   } catch (error) {
     return toErrorResponse(error, "Failed to update marker");
   }

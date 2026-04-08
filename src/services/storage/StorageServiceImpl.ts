@@ -3,8 +3,10 @@
 import type { IStorageService } from "./IStorageService";
 import type { IStorageRepository } from "@/repositories/storage/IStorageRepository";
 import type {
+  CreateUploadTargetInput,
   SaveFileInput,
   StoredFile,
+  UploadTarget,
 } from "@/contracts/storage/storage.types";
 
 export class StorageServiceImpl implements IStorageService {
@@ -14,8 +16,16 @@ export class StorageServiceImpl implements IStorageService {
     return this.storageRepository.save(file);
   }
 
+  async createUploadTarget(file: CreateUploadTargetInput): Promise<UploadTarget> {
+    return this.storageRepository.createUploadTarget(file);
+  }
+
   async getPublicUrl(path: string): Promise<string> {
     return this.storageRepository.getPublicUrl(path);
+  }
+
+  async exists(path: string): Promise<boolean> {
+    return this.storageRepository.exists(path);
   }
 
   async delete(path: string): Promise<void> {

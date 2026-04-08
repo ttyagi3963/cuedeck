@@ -2,14 +2,18 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
+  useState,
   type Context,
   type ReactNode,
 } from "react";
 import type { Episode } from "@/contracts/episode";
 import type { PlaybackState } from "@/contracts/video";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
+
+export type PlaybackSourceKind = "source" | "generated";
 
 type PlaybackControlsContextValue = {
   episode: Episode;
@@ -21,6 +25,12 @@ type PlaybackControlsContextValue = {
   skip: (seconds: number) => void;
   jumpToStart: () => void;
   jumpToEnd: () => void;
+  playbackSourceKind: PlaybackSourceKind;
+  hasGeneratedPlaybackSource: boolean;
+  setGeneratedPlaybackSource: (url: string) => void;
+  clearGeneratedPlaybackSource: () => void;
+  playOriginalSource: () => void;
+  playGeneratedSource: () => void;
 };
 
 type PlaybackContextValue = PlaybackControlsContextValue & {
@@ -43,6 +53,15 @@ export function PlaybackProvider({
   episode,
   children,
 }: PlaybackProviderProps) {
+  const [generatedPlaybackSourceUrl, setGeneratedPlaybackSourceUrl] = useState<
+    string | null
+  >(null);
+  const [playbackSourceKind, setPlaybackSourceKind] =
+    useState<PlaybackSourceKind>("source");
+  const activeSourceUrl =
+    playbackSourceKind === "generated" && generatedPlaybackSourceUrl
+      ? generatedPlaybackSourceUrl
+      : episode.sourceUrl;
   const {
     videoRef,
     state: playback,
@@ -53,7 +72,24 @@ export function PlaybackProvider({
     skip,
     jumpToStart,
     jumpToEnd,
-  } = useVideoPlayer(episode.sourceUrl);
+  } = useVideoPlayer(activeSourceUrl);
+
+  const setGeneratedPlaybackSource = useCallback((url: string) => {
+    setGeneratedPlaybackSourceUrl(url);
+  }, []);
+
+  const clearGeneratedPlaybackSource = useCallback(() => {
+    setGeneratedPlaybackSourceUrl(null);
+    setPlaybackSourceKind("source");
+  }, []);
+
+  const playOriginalSource = useCallback(() => {
+    setPlaybackSourceKind("source");
+  }, []);
+
+  const playGeneratedSource = useCallback(() => {
+    setPlaybackSourceKind("generated");
+  }, []);
 
   const controlsValue = useMemo(
     () => ({
@@ -66,8 +102,30 @@ export function PlaybackProvider({
       skip,
       jumpToStart,
       jumpToEnd,
+      playbackSourceKind,
+      hasGeneratedPlaybackSource: generatedPlaybackSourceUrl !== null,
+      setGeneratedPlaybackSource,
+      clearGeneratedPlaybackSource,
+      playOriginalSource,
+      playGeneratedSource,
     }),
-    [episode, videoRef, play, pause, toggle, seek, skip, jumpToStart, jumpToEnd],
+    [
+      episode,
+      videoRef,
+      play,
+      pause,
+      toggle,
+      seek,
+      skip,
+      jumpToStart,
+      jumpToEnd,
+      playbackSourceKind,
+      generatedPlaybackSourceUrl,
+      setGeneratedPlaybackSource,
+      clearGeneratedPlaybackSource,
+      playOriginalSource,
+      playGeneratedSource,
+    ],
   );
 
   return (
@@ -121,6 +179,10 @@ export function useEditorPlaybackIsPlaying() {
 
 export function useEditorPlaybackIsReady() {
   return useRequiredContext(PlaybackIsReadyContext, "useEditorPlaybackIsReady");
+}
+
+export function useEditorPlaybackSourceKind() {
+  return useEditorPlaybackControls().playbackSourceKind;
 }
 
 export function useEditorPlayback(): PlaybackContextValue {

@@ -9,7 +9,7 @@ type ErrorProps = {
 
 export default function EditorError({ error, reset }: ErrorProps) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-16">
+    <div className="flex flex-1 flex-col items-center justify-center gap-content-gap-sm p-16">
       <h1 className="text-2xl font-bold text-text-heading">
         Something went wrong
       </h1>

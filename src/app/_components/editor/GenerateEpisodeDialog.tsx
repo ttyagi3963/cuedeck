@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import Link from "next/link";
-import { generationJobResultSchema } from "@/contracts/generation";
+import { useEditor } from "@/context/EditorContext";
 import Dialog from "@/app/_components/ui/Dialog";
 import Button from "@/app/_components/ui/Button";
 import { useJob, useStartGeneration } from "@/hooks/useGeneration";
@@ -16,7 +14,6 @@ type GenerateEpisodeDialogProps = {
   markerCount: number;
   jobId: string | null;
   onJobCreated: (jobId: string) => void;
-  onJobCleared: () => void;
 };
 
 export default function GenerateEpisodeDialog({
@@ -27,40 +24,17 @@ export default function GenerateEpisodeDialog({
   markerCount,
   jobId,
   onJobCreated,
-  onJobCleared,
 }: GenerateEpisodeDialogProps) {
   const startGenerationMutation = useStartGeneration(episodeId);
   const jobQuery = useJob(jobId);
   const { toast } = useToast();
+  const { playOriginalSource } = useEditor();
   const hasMarkers = markerCount > 0;
-  const statusToastRef = useRef<string | null>(null);
   const activeJob = jobQuery.data ?? null;
-  const generationResult = activeJob?.result
-    ? generationJobResultSchema.safeParse(activeJob.result)
-    : null;
-  const parsedGenerationResult = generationResult?.success
-    ? generationResult.data
-    : null;
-
-  useEffect(() => {
-    if (!activeJob) {
-      statusToastRef.current = null;
-      return;
-    }
-
-    const statusKey = `${activeJob.id}:${activeJob.status}`;
-    if (statusToastRef.current === statusKey) {
-      return;
-    }
-
-    if (activeJob.status === "COMPLETED") {
-      toast("Final video is ready");
-      statusToastRef.current = statusKey;
-    } else if (activeJob.status === "FAILED") {
-      toast(activeJob.error ?? "Generation failed", "error");
-      statusToastRef.current = statusKey;
-    }
-  }, [activeJob, toast]);
+  const hasKnownJob = jobId !== null;
+  const isCheckingLatestJob = hasKnownJob && jobQuery.isLoading && !activeJob;
+  const isProcessing =
+    activeJob?.status === "QUEUED" || activeJob?.status === "PROCESSING";
 
   function handleClose() {
     if (startGenerationMutation.isPending) {
@@ -70,17 +44,15 @@ export default function GenerateEpisodeDialog({
     onClose();
   }
 
-  function handleReset() {
-    onJobCleared();
-  }
-
   async function handleConfirm() {
     try {
       const result = await startGenerationMutation.mutateAsync();
       const insertionCount = result.plan.insertions.length;
       onJobCreated(result.job.id);
+      playOriginalSource();
+      onClose();
       toast(
-        `Generation started for "${episodeTitle}" with ${insertionCount} ${insertionCount === 1 ? "ad break" : "ad breaks"}`,
+        `Generation started for "${episodeTitle}". You can keep editing while ${insertionCount === 0 ? "the render runs" : `${insertionCount} ${insertionCount === 1 ? "ad break is" : "ad breaks are"} rendered`}.`,
       );
     } catch (error) {
       const message =
@@ -89,42 +61,108 @@ export default function GenerateEpisodeDialog({
     }
   }
 
-  const dialogTitle = activeJob
-    ? activeJob.status === "COMPLETED"
-      ? "Final video ready"
-      : activeJob.status === "FAILED"
-        ? "Generation failed"
-        : "Generating final video"
-    : "Generate final video?";
-
-  const dialogSubtitle = activeJob
-    ? activeJob.status === "COMPLETED"
-      ? `The rendered MP4 for "${episodeTitle}" is complete.`
-      : activeJob.status === "FAILED"
-        ? `The render for "${episodeTitle}" did not finish successfully.`
-        : `Rendering "${episodeTitle}" into a final MP4 with ad insertions.`
-    : `This will create a rendered MP4 for "${episodeTitle}" using the saved marker and ad selections.`;
-
   return (
     <Dialog
       open={open}
       onClose={handleClose}
-      title={dialogTitle}
-      subtitle={dialogSubtitle}
+      title={
+        isProcessing ? "Generation running in background" : "Generate final video?"
+      }
+      subtitle={
+        isProcessing
+          ? `A render for "${episodeTitle}" is already in progress. You can close this dialog and keep editing while it finishes.`
+          : `This will create a rendered MP4 and HLS package for "${episodeTitle}" using the current marker and ad selections.`
+      }
+      dismissible={!startGenerationMutation.isPending}
     >
-      {!activeJob && (
-        <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-border-default bg-surface p-4 text-sm text-text-muted">
+      {isCheckingLatestJob ? (
+        <div className="flex flex-col gap-content-gap-sm">
+          <div className="rounded-dialog border border-border-default bg-surface p-content-p-sm text-sm text-text-muted">
+            Checking the latest generation status...
+          </div>
+          <Button
+            variant="primary"
+            className="w-full"
+            onClick={handleClose}
+            disabled={startGenerationMutation.isPending}
+          >
+            Close
+          </Button>
+        </div>
+      ) : isProcessing ? (
+        <div className="flex flex-col gap-content-gap-sm">
+          <div className="rounded-dialog border border-border-default bg-surface p-content-p-sm text-sm text-text-muted">
+            <p>
+              Status:{" "}
+              <span className="font-semibold text-text-heading">
+                {activeJob.status}
+              </span>
+            </p>
+            <div className="mt-3 flex items-center justify-between gap-content-gap-sm">
+              <span className="text-sm font-medium text-text-muted">
+                Progress
+              </span>
+              <span className="rounded-full bg-trend-positive/10 px-3 py-1 text-lg font-bold text-trend-positive">
+                {activeJob.progress}%
+              </span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-trend-positive/20">
+              <div
+                className="h-full rounded-full bg-trend-positive transition-[width] duration-500"
+                style={{ width: `${activeJob.progress}%` }}
+              />
+            </div>
+            <p className="mt-3">
+              You can close this dialog, keep editing, or leave the page and come
+              back later.
+            </p>
+            {activeJob.error ? (
+              <p className="mt-2 text-text-danger">{activeJob.error}</p>
+            ) : null}
+          </div>
+
+          <Button
+            variant="primary"
+            className="w-full"
+            onClick={handleClose}
+            disabled={startGenerationMutation.isPending}
+          >
+            Keep editing
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-content-gap-sm">
+          <div className="rounded-dialog border border-border-default bg-surface p-content-p-sm text-sm text-text-muted">
             <p>
               {markerCount} {markerCount === 1 ? "marker" : "markers"} will be
               used for this render.
             </p>
-            {!hasMarkers && (
+            {!hasMarkers ? (
               <p className="mt-2 text-text-danger">
                 Add at least one marker before generating a final video.
               </p>
-            )}
+            ) : null}
+            {activeJob?.status === "COMPLETED" ? (
+              <p className="mt-2 text-trend-positive">
+                A previous render is already complete. Starting again will create a
+                fresh output from the current markers.
+              </p>
+            ) : null}
+            {activeJob?.status === "FAILED" ? (
+              <p className="mt-2 text-text-danger">
+                The previous render failed. You can start a new one from the current
+                editor state.
+              </p>
+            ) : null}
           </div>
+
+          {jobQuery.isError ? (
+            <div className="rounded-dialog border border-text-danger/30 bg-text-danger/5 p-content-p-sm text-sm text-text-danger">
+              {jobQuery.error instanceof Error
+                ? jobQuery.error.message
+                : "Failed to fetch the latest generation status"}
+            </div>
+          ) : null}
 
           <div className="flex gap-content-gap-sm">
             <Button
@@ -143,83 +181,16 @@ export default function GenerateEpisodeDialog({
               }
               className="flex-1"
               onClick={handleConfirm}
-              disabled={!hasMarkers || startGenerationMutation.isPending}
+              disabled={
+                !hasMarkers ||
+                startGenerationMutation.isPending ||
+                isCheckingLatestJob
+              }
             >
               {startGenerationMutation.isPending
                 ? "Starting..."
                 : "Generate video"}
             </Button>
-          </div>
-        </div>
-      )}
-
-      {activeJob && (
-        <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-border-default bg-surface p-4 text-sm text-text-muted">
-            <p>
-              Status: <span className="font-semibold text-text-heading">{activeJob.status}</span>
-            </p>
-            <p className="mt-2">
-              Progress:{" "}
-              <span className="font-semibold text-text-heading">
-                {activeJob.progress}%
-              </span>
-            </p>
-            {activeJob.error && (
-              <p className="mt-2 text-text-danger">{activeJob.error}</p>
-            )}
-            {jobQuery.isLoading && (
-              <p className="mt-2">Refreshing job status...</p>
-            )}
-            {jobQuery.isError && (
-              <p className="mt-2 text-text-danger">
-                {jobQuery.error instanceof Error
-                  ? jobQuery.error.message
-                  : "Failed to fetch job status"}
-              </p>
-            )}
-          </div>
-
-          {parsedGenerationResult && (
-            <div className="rounded-lg border border-border-default bg-surface p-4 text-sm text-text-muted">
-              <p>
-                Output file:{" "}
-                <span className="font-medium text-text-heading">
-                  {parsedGenerationResult.storedFile.path}
-                </span>
-              </p>
-              <p className="mt-2">
-                Segments rendered:{" "}
-                <span className="font-medium text-text-heading">
-                  {parsedGenerationResult.segmentCount}
-                </span>
-              </p>
-              <Link
-                href={parsedGenerationResult.storedFile.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex text-sm font-medium text-interactive-primary hover:underline"
-              >
-                Open generated video
-              </Link>
-            </div>
-          )}
-
-          <div className="flex gap-content-gap-sm">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={handleClose}
-            >
-              Close
-            </Button>
-            {(activeJob.status === "COMPLETED" || activeJob.status === "FAILED") && (
-              <Button variant="primary" className="flex-1" onClick={handleReset}>
-                {activeJob.status === "FAILED"
-                  ? "Try again"
-                  : "Generate again"}
-              </Button>
-            )}
           </div>
         </div>
       )}

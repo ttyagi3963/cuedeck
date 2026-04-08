@@ -133,8 +133,8 @@ export default function ProgressSlider({
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="min-w-[3.5rem] text-right text-sm font-semibold tabular-nums text-white/80">
+    <div className="flex items-center gap-content-gap-md">
+      <span className="min-w-[3.5rem] text-right text-sm font-semibold tabular-nums text-text-on-primary/80">
         {formatTime(displayTime)}
       </span>
 
@@ -152,7 +152,7 @@ export default function ProgressSlider({
         <div className="h-1.5 w-full rounded-full bg-border-subtle">
           {/* Filled portion */}
           <div
-            className="h-full rounded-full bg-red-600"
+            className="h-full rounded-full bg-danger"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -195,7 +195,7 @@ export default function ProgressSlider({
 
                 {/* Drag tooltip - shows time while dragging */}
                 {isBeingDragged && (
-                  <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-yellow-500 px-2.5 py-1 text-xs font-bold text-black shadow-lg">
+                  <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-yellow-500 px-2.5 py-1 text-xs font-bold text-text-on-warning shadow-lg">
                     {formatTime(markerDragTime)}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-yellow-500" />
                   </div>
@@ -203,9 +203,9 @@ export default function ProgressSlider({
 
                 {/* Hover tooltip */}
                 {isHovered && !draggingMarkerId && (
-                  <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-zinc-800 px-2.5 py-1 text-xs font-medium text-white shadow-lg animate-in fade-in">
+                  <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-background-tooltip px-2.5 py-1 text-xs font-medium text-text-on-primary shadow-lg animate-in fade-in">
                     {label}
-                    <span className="ml-1.5 text-white/50">
+                    <span className="ml-1.5 text-text-on-primary/50">
                       {formatTime(m.timeSec)}
                     </span>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-800" />
@@ -217,12 +217,12 @@ export default function ProgressSlider({
 
         {/* Thumb */}
         <div
-          className="absolute z-[3] h-4 w-4 -translate-x-1/2 rounded-full bg-red-600 shadow-sm transition-transform group-hover:scale-125"
+          className="absolute z-[3] h-4 w-4 -translate-x-1/2 rounded-full bg-danger shadow-sm transition-transform group-hover:scale-125"
           style={{ left: `${progress}%` }}
         />
       </div>
 
-      <span className="min-w-[3.5rem] text-sm font-semibold tabular-nums text-white/80">
+      <span className="min-w-[3.5rem] text-sm font-semibold tabular-nums text-text-on-primary/80">
         {formatTime(duration)}
       </span>
     </div>

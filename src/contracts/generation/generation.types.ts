@@ -24,7 +24,29 @@ export interface GenerationPlan {
   insertions: ResolvedGenerationInsertion[];
 }
 
+export interface HlsVariant {
+  name: string;
+  playlist: StoredFile;
+  bandwidth: number;
+  averageBandwidth: number;
+  width: number;
+  height: number;
+  segmentCount: number;
+}
+
+export interface HlsPackageResult {
+  masterPlaylist: StoredFile;
+  variants: HlsVariant[];
+  segmentFileCount: number;
+}
+
 export interface GenerationJobResult {
+  storedFile: StoredFile;
+  segmentCount: number;
+  hlsPackage: HlsPackageResult | null;
+}
+
+export interface GenerateFinalVideoResult {
   storedFile: StoredFile;
   segmentCount: number;
 }
