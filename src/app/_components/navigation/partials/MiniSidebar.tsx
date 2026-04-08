@@ -1,5 +1,4 @@
 import { PlayCircle } from "lucide-react";
-import Link from "next/link";
 import { SECONDARY_NAV_ITEMS } from "@/lib/constants";
 
 export default function MiniSidebar() {
@@ -21,15 +20,16 @@ export default function MiniSidebar() {
           </span>
         </div>
 
-        {SECONDARY_NAV_ITEMS.map(({ label, icon: Icon, href }) => (
-          <Link
+        {SECONDARY_NAV_ITEMS.map(({ label, icon: Icon }) => (
+          <button
+            type="button"
             key={label}
-            href={href}
             className="flex w-full items-center gap-content-gap-md px-3 py-1.5 text-base font-bold text-text-muted transition-colors hover:text-text-heading"
+            aria-disabled="true"
           >
             <Icon className="h-5 w-5" />
             {label}
-          </Link>
+          </button>
         ))}
       </div>
     </>
