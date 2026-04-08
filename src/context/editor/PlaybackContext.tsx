@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import type { Episode } from "@/contracts/episode";
-import type { PlaybackState } from "@/contracts/video";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 
 export type PlaybackSourceKind = "source" | "generated";
@@ -31,10 +30,6 @@ type PlaybackControlsContextValue = {
   clearGeneratedPlaybackSource: () => void;
   playOriginalSource: () => void;
   playGeneratedSource: () => void;
-};
-
-type PlaybackContextValue = PlaybackControlsContextValue & {
-  playback: PlaybackState;
 };
 
 const PlaybackControlsContext =
@@ -183,22 +178,4 @@ export function useEditorPlaybackIsReady() {
 
 export function useEditorPlaybackSourceKind() {
   return useEditorPlaybackControls().playbackSourceKind;
-}
-
-export function useEditorPlayback(): PlaybackContextValue {
-  const controls = useEditorPlaybackControls();
-  const currentTime = useEditorPlaybackCurrentTime();
-  const duration = useEditorPlaybackDuration();
-  const isPlaying = useEditorPlaybackIsPlaying();
-  const isReady = useEditorPlaybackIsReady();
-
-  return {
-    ...controls,
-    playback: {
-      currentTime,
-      duration,
-      isPlaying,
-      isReady,
-    },
-  };
 }

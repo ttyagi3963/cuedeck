@@ -33,8 +33,6 @@ export default function ProgressSlider({
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
   const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
-
-  // Marker-drag state
   const [draggingMarkerId, setDraggingMarkerId] = useState<string | null>(null);
   const [markerDragTime, setMarkerDragTime] = useState(0);
 
@@ -65,7 +63,6 @@ export default function ProgressSlider({
   }
 
   function handlePointerDown(e: ReactPointerEvent) {
-    // Don't start playhead drag if we're dragging a marker
     if (draggingMarkerId) return;
     e.preventDefault();
     const time = getTimeFromEvent(e);
@@ -80,7 +77,6 @@ export default function ProgressSlider({
   }
 
   function handlePointerMove(e: ReactPointerEvent) {
-    // Marker drag takes priority
     if (draggingMarkerId) {
       const time = getTimeFromEvent(e);
       setMarkerDragTime(Math.max(0, Math.min(duration, time)));
@@ -93,7 +89,6 @@ export default function ProgressSlider({
     setDragTime(time);
     onHover?.(time, percent);
 
-    // Throttle actual video seeks to avoid overwhelming the decoder
     const now = performance.now();
     if (now - lastSeekRef.current > 150) {
       lastSeekRef.current = now;
@@ -102,7 +97,6 @@ export default function ProgressSlider({
   }
 
   function handlePointerUp() {
-    // Finish marker drag
     if (draggingMarkerId) {
       onMarkerDrag?.(draggingMarkerId, Math.round(markerDragTime));
       setDraggingMarkerId(null);
@@ -148,16 +142,13 @@ export default function ProgressSlider({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Track background */}
         <div className="h-1.5 w-full rounded-full bg-border-subtle">
-          {/* Filled portion */}
           <div
             className="h-full rounded-full bg-danger"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        {/* Ad marker indicators */}
         {duration > 0 &&
           markers.map((m) => {
             const adNames = m.markerAds.map((ma) => ma.ad.title).join(", ");
@@ -183,17 +174,13 @@ export default function ProgressSlider({
                   setDraggingMarkerId(m.id);
                   setMarkerDragTime(m.timeSec);
                   setHoveredMarkerId(null);
-
-                  // Capture pointer on the track so movements outside the dot still work
                   trackRef.current?.setPointerCapture(e.pointerId);
                 }}
               >
-                {/* Yellow tick */}
                 <div
                   className={`h-[6px] w-[6px] bg-yellow-700 transition-[left] duration-300 ${isBeingDragged ? "scale-150 bg-yellow-300" : ""}`}
                 />
 
-                {/* Drag tooltip - shows time while dragging */}
                 {isBeingDragged && (
                   <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-yellow-500 px-2.5 py-1 text-xs font-bold text-text-on-warning shadow-lg">
                     {formatTime(markerDragTime)}
@@ -201,7 +188,6 @@ export default function ProgressSlider({
                   </div>
                 )}
 
-                {/* Hover tooltip */}
                 {isHovered && !draggingMarkerId && (
                   <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-background-tooltip px-2.5 py-1 text-xs font-medium text-text-on-primary shadow-lg animate-in fade-in">
                     {label}
@@ -215,7 +201,6 @@ export default function ProgressSlider({
             );
           })}
 
-        {/* Thumb */}
         <div
           className="absolute z-[3] h-4 w-4 -translate-x-1/2 rounded-full bg-danger shadow-sm transition-transform group-hover:scale-125"
           style={{ left: `${progress}%` }}

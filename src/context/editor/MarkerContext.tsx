@@ -262,8 +262,6 @@ export function MarkerProvider({
     const hasAds = adIds.length > 0 && playbackSourceKind === "source";
 
     void (async () => {
-      // If we are placing a marker with ads, suppress the auto-injection
-      // so the overlay doesn't "hijack" the player immediately.
       if (hasAds) {
         suppressAdChecks();
       }
@@ -286,11 +284,8 @@ export function MarkerProvider({
             syncMarkerTargetId(target, recreatedMarker.id);
           },
         });
-      } catch {
-        // Silently fail if creation fails; toast is handled in createMarkerRecord
-      } finally {
+      } catch {} finally {
         if (hasAds) {
-          // Re-enable ad checks after the seek is finished
           unsuppressAdChecks();
         }
       }

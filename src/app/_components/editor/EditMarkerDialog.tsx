@@ -88,7 +88,6 @@ export default function EditMarkerDialog({
     >
       {step === DIALOG_STEPS.DETAILS && (
         <div className="flex flex-col gap-content-gap-sm">
-          {/* Validation errors */}
           {errors.length > 0 && (
             <div className="rounded-button-primary border border-danger/30 bg-notification-badge/10 px-3 py-2">
               {errors.map((err) => (
@@ -99,7 +98,6 @@ export default function EditMarkerDialog({
             </div>
           )}
 
-          {/* Time input */}
           <div className="flex flex-col gap-content-gap-2-5">
             <label
               htmlFor="edit-time"
@@ -118,7 +116,6 @@ export default function EditMarkerDialog({
             />
           </div>
 
-          {/* Current ads */}
           <div className="flex flex-col gap-content-gap-2-5">
             <span className="text-sm font-medium text-text-heading">
               Assigned ad{adIds.length !== 1 ? "s" : ""}
@@ -163,7 +160,6 @@ export default function EditMarkerDialog({
             )}
           </div>
 
-          {/* Footer */}
           <div className="flex gap-content-gap-sm">
             <Button variant="outline" className="flex-1" onClick={handleClose}>
               Cancel

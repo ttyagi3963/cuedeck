@@ -86,12 +86,6 @@ export default function AdList() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-content-gap-md">
-                  {/* <a
-                    href="#upload-ad"
-                    className="inline-flex flex-1 items-center justify-center rounded-button-primary border border-border-default bg-surface px-4 py-2 text-base font-semibold text-text-heading"
-                  >
-                    Edit
-                  </a> */}
                   <Button
                     variant="danger"
                     className="flex-1 justify-center rounded-button-primary px-4 py-2"

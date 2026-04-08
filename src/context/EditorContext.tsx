@@ -225,7 +225,6 @@ export function useEditor(): EditorContextValue {
 }
 
 export {
-  useEditorPlayback,
   useEditorPlaybackControls,
   useEditorPlaybackCurrentTime,
   useEditorPlaybackDuration,

@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { formatTime } from "@/utils/time";
 import { useEditor } from "@/context/EditorContext";
+import Spinner from "@/app/_components/ui/Spinner";
 import ProgressSlider from "./ProgressSlider";
 import AdOverlay from "./AdOverlay";
 
@@ -34,9 +35,19 @@ export default function VideoPlayer() {
 
   return (
     <div className="group/video relative aspect-video w-full overflow-hidden rounded-dialog bg-video-bg">
-      {/* Ad overlay — shown when an ad is playing */}
       {adState.isPlayingAd && adState.currentAd && (
         <AdOverlay ad={adState.currentAd} onEnded={onAdEnded} />
+      )}
+
+      {!playback.isReady && !adState.isPlayingAd && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-video-bg/80 backdrop-blur-[1px]">
+          <div className="flex items-center gap-content-gap-md rounded-full border border-border-on-primary/60 bg-surface/85 px-4 py-2 shadow-sm">
+            <Spinner size="sm" />
+            <span className="text-sm font-semibold text-text-heading">
+              Loading video...
+            </span>
+          </div>
+        </div>
       )}
 
       <video
@@ -47,9 +58,7 @@ export default function VideoPlayer() {
         onClick={toggle}
       />
 
-      {/* Slider overlay — hidden until hover */}
       <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8 opacity-0 transition-all duration-200 group-hover/video:translate-y-0 group-hover/video:opacity-100">
-        {/* Preview thumbnail */}
         {hoverState && (
           <div
             className="absolute bottom-full mb-3 -translate-x-1/2 pointer-events-none"

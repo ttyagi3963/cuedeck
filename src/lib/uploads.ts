@@ -19,32 +19,3 @@ export function buildStoredFileName(
   const ext = path.extname(originalName) || ".mp4";
   return `${Date.now()}-${baseName}${ext.toLowerCase()}`;
 }
-
-export function parseDuration(value: FormDataEntryValue | null): number | null {
-  if (typeof value !== "string") return null;
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
-
-export function parseTextField(value: FormDataEntryValue | null): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-export function parseOptionalTextField(
-  value: FormDataEntryValue | null,
-): string | undefined {
-  const parsed = parseTextField(value);
-  return parsed.length > 0 ? parsed : undefined;
-}
-
-export function parseVideoFile(value: FormDataEntryValue | null): File | null {
-  if (!(value instanceof File)) return null;
-  if (value.size <= 0) return null;
-  if (!value.type.startsWith("video/")) return null;
-  return value;
-}

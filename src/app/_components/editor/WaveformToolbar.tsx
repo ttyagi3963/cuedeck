@@ -34,7 +34,6 @@ function WaveformToolbar({
 
   return (
     <div className="flex items-center justify-between rounded-dialog  bg-surface px-4 py-2">
-      {/* Left: Undo / Redo */}
       <div className="flex items-center gap-content-gap-md">
         <button
           type="button"
@@ -56,12 +55,10 @@ function WaveformToolbar({
         </button>
       </div>
 
-      {/* Center: Current timestamp */}
       <span className="rounded-button-primary border border-border-default px-3 py-1 text-base font-semibold leading-6 tabular-nums text-text-muted">
         {formatTimestamp(currentTime)}
       </span>
 
-      {/* Right: Zoom controls */}
       <div className="flex items-center gap-content-gap-md">
         <button
           type="button"

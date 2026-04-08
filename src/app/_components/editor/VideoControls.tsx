@@ -29,7 +29,6 @@ export default function VideoControls() {
   } = useEditor();
   return (
     <div className="flex flex-wrap items-center justify-between gap-content-gap-md rounded-ad-markers border border-border-default bg-surface p-content-p-xs md:p-content-p-sm [&_*]:cursor-pointer">
-      {/* Left: undo / redo + jump to start */}
       <div className="flex items-center gap-content-gap-xs">
         <Button
           variant="ghost"
@@ -66,7 +65,6 @@ export default function VideoControls() {
         </Button>
       </div>
 
-      {/* Center controls */}
       <div className="flex items-center gap-content-gap-md xl:gap-page-gap order-last lg:order-none w-full lg:w-auto justify-center mt-2 lg:mt-0">
         <Button
           variant="ghost"
@@ -116,7 +114,6 @@ export default function VideoControls() {
         </Button>
       </div>
 
-      {/* Jump to end */}
       <Button
         variant="ghost"
         onClick={jumpToEnd}
@@ -130,7 +127,6 @@ export default function VideoControls() {
           <SkipToEnd className="text-text-heading" />
         </span>
       </Button>
-
     </div>
   );
 }

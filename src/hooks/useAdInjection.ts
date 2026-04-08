@@ -105,7 +105,6 @@ export function useAdInjection(
     (currentTime: number) => {
       if (adState.isPlayingAd) return;
 
-      // Stay suppressed until cooldown expires, then resume normal checks.
       if (suppressedRef.current) {
         if (Date.now() < suppressEndTimeRef.current) return;
         suppressedRef.current = false;

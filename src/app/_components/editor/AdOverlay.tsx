@@ -14,19 +14,16 @@ export default function AdOverlay({ ad, onEnded }: AdOverlayProps) {
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col bg-video-bg">
-      {/* Ad badge */}
       <div className="absolute left-3 top-3 z-30 rounded bg-yellow-500 px-2 py-0.5 text-xs font-bold text-text-on-warning">
         Ad &middot; {ad.title}
       </div>
 
-      {/* Loading spinner while video buffers */}
       {isBuffering && (
         <div className="absolute inset-0 z-25 flex items-center justify-center">
           <Spinner size="lg" />
         </div>
       )}
 
-      {/* Ad video */}
       <video
         src={ad.videoUrl}
         className="h-full w-full object-contain"

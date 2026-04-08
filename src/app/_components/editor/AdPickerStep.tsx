@@ -83,12 +83,10 @@ export default function AdPickerStep({
           next.clear();
           next.add(ad.id);
         }
+      } else if (next.has(ad.id)) {
+        next.delete(ad.id);
       } else {
-        if (next.has(ad.id)) {
-          next.delete(ad.id);
-        } else {
-          next.add(ad.id);
-        }
+        next.add(ad.id);
       }
 
       return next;
@@ -115,7 +113,6 @@ export default function AdPickerStep({
   return (
     <div className="flex flex-col gap-content-gap-sm">
       <div className="flex gap-content-gap-sm" style={{ minHeight: 340 }}>
-        {/* Left sidebar — company list */}
         <div className="flex w-44 shrink-0 flex-col gap-content-gap-xs border-r border-border-default pr-4">
           <SearchInput
             placeholder="Search library..."
@@ -145,7 +142,6 @@ export default function AdPickerStep({
           </nav>
         </div>
 
-        {/* Right panel — ad cards */}
         <div className="flex min-w-0 flex-1 flex-col gap-content-gap-xs overflow-y-auto">
           {companyAds.length === 0 && (
             <p className="py-8 text-center text-sm text-text-muted">
@@ -166,7 +162,6 @@ export default function AdPickerStep({
                     : "border-border-default hover:border-border-subtle"
                 }`}
               >
-                {/* Thumbnail */}
                 <div className="h-14 w-24 shrink-0 overflow-hidden rounded-button-primary bg-video-bg">
                   <video
                     src={ad.videoUrl}
@@ -176,23 +171,16 @@ export default function AdPickerStep({
                   />
                 </div>
 
-                {/* Info */}
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="truncate text-sm font-semibold text-text-heading">
                     {ad.title}
                   </span>
                   <span className="text-xs text-text-muted">
                     {formatDurationShort(ad.duration)}
-                    {ad.companyName && (
-                      <>
-                        {" · "}
-                        {ad.companyName}
-                      </>
-                    )}
+                    {ad.companyName && ` | ${ad.companyName}`}
                   </span>
                 </div>
 
-                {/* Checkbox / Radio indicator */}
                 <div
                   className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${
                     mode === "single" ? "rounded-full" : "rounded-button-primary"
@@ -211,7 +199,6 @@ export default function AdPickerStep({
         </div>
       </div>
 
-      {/* Footer */}
       <div className="flex flex-col gap-content-gap-xs">
         {selectionCount > 0 && (
           <p className="text-center text-xs text-text-muted">

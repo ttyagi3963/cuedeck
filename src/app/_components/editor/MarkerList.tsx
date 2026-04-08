@@ -55,15 +55,12 @@ export default function MarkerList({
       return;
     }
 
-    // Collect the original timeSec values in sorted order
     const times = markers.map((m) => m.timeSec);
 
-    // Build the new order: move oldIndex item to newIndex
     const reordered = [...markers];
     const [moved] = reordered.splice(oldIndex, 1);
     reordered.splice(newIndex, 0, moved);
 
-    // Reassign the original time slots to the new order
     const updates: { markerId: string; timeSec: number }[] = [];
     for (let i = 0; i < reordered.length; i++) {
       if (reordered[i].timeSec !== times[i]) {
@@ -75,7 +72,6 @@ export default function MarkerList({
       moveMarker(u.markerId, u.timeSec);
     }
 
-    // Re-enable ad checks and mark all current markers as played
     unsuppressAdChecks();
   }
 

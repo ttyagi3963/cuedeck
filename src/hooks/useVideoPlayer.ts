@@ -10,6 +10,8 @@ import {
 import Hls from "hls.js";
 import type { PlaybackState, VideoPlayerControls } from "@/contracts/video";
 
+type InternalPlaybackState = Omit<PlaybackState, "isReady">;
+
 export function useVideoPlayer(src: string): VideoPlayerControls {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -21,20 +23,28 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
   } | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
 
-  const [state, setState] = useState<PlaybackState>({
+  const [state, setState] = useState<InternalPlaybackState>({
     isPlaying: false,
     currentTime: 0,
     duration: 0,
-    isReady: false,
   });
+  const [readySourceUrl, setReadySourceUrl] = useState<string | null>(null);
 
-  // Re-capture the element whenever the ref changes (e.g. after loading state resolves)
+  const applyDirectSource = useCallback(
+    (video: HTMLVideoElement, nextSrc: string) => {
+      if (video.src !== nextSrc) {
+        video.src = nextSrc;
+      }
+      video.load();
+    },
+    [],
+  );
+
   const setRef = useCallback((node: HTMLVideoElement | null) => {
     (videoRef as MutableRefObject<HTMLVideoElement | null>).current = node;
     setVideoEl(node);
   }, []);
 
-  // Attach HLS or direct source
   useEffect(() => {
     const video = videoRef.current;
     if (!video || video !== videoEl || !src) return;
@@ -55,6 +65,23 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       const hls = new Hls();
       hls.loadSource(src);
       hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal) {
+          return;
+        }
+
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
+        }
+
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+
+        hls.destroy();
+      });
       hlsRef.current = hls;
 
       return () => {
@@ -63,10 +90,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       };
     }
 
-    // Safari handles HLS natively; for non-HLS sources use direct src
-    video.src = src;
+    applyDirectSource(video, src);
     return undefined;
-  }, [videoEl, src]);
+  }, [applyDirectSource, videoEl, src]);
 
   const toggle = useCallback(() => {
     const video = videoRef.current;
@@ -94,14 +120,18 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
   const seek = useCallback((time: number) => {
     const video = videoRef.current;
     if (!video) return;
-    video.pause();
+    const shouldResume = !video.paused;
     const nextTime = Math.max(0, Math.min(time, video.duration || 0));
     video.currentTime = nextTime;
     setState((prev) => ({
       ...prev,
       currentTime: nextTime,
-      isPlaying: false,
+      isPlaying: shouldResume,
     }));
+
+    if (shouldResume) {
+      void video.play();
+    }
   }, []);
 
   const skip = useCallback((seconds: number) => {
@@ -126,13 +156,15 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
 
     const onPlay = () => setState((prev) => ({ ...prev, isPlaying: true }));
     const onPause = () => setState((prev) => ({ ...prev, isPlaying: false }));
+    const onLoadStart = () => setReadySourceUrl(null);
+    const onWaiting = () => setReadySourceUrl(null);
+    const markReady = () => setReadySourceUrl(src);
     const onTimeUpdate = () =>
       setState((prev) => ({ ...prev, currentTime: video.currentTime }));
     const onLoadedMetadata = () =>
       setState((prev) => ({
         ...prev,
         duration: video.duration,
-        isReady: true,
       }));
     const onEnded = () => setState((prev) => ({ ...prev, isPlaying: false }));
     const onLoadedData = () => {
@@ -147,23 +179,26 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
         if (pendingRestore.shouldResume) {
           void video.play();
         }
+        markReady();
         return;
       }
 
-      // Show the first frame instead of a black screen
       if (video.currentTime === 0) {
         video.currentTime = 2;
       }
+      markReady();
     };
 
+    video.addEventListener("loadstart", onLoadStart);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("canplay", markReady);
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("loadedmetadata", onLoadedMetadata);
     video.addEventListener("loadeddata", onLoadedData);
     video.addEventListener("ended", onEnded);
 
-    // If metadata already loaded (e.g. from cache), sync immediately
     let isDisposed = false;
 
     if (video.readyState >= 1) {
@@ -173,11 +208,13 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       });
     }
 
-    // cleanup
     return () => {
       isDisposed = true;
+      video.removeEventListener("loadstart", onLoadStart);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("canplay", markReady);
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("loadedmetadata", onLoadedMetadata);
       video.removeEventListener("loadeddata", onLoadedData);
@@ -187,7 +224,10 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
 
   return {
     videoRef: setRef,
-    state,
+    state: {
+      ...state,
+      isReady: readySourceUrl === src,
+    },
     play,
     pause,
     toggle,
