@@ -18,12 +18,15 @@ import {
   WAVE_MAX_PX_PER_SEC,
   WAVE_MIN_PX_PER_SEC,
   WAVE_TOP_PADDING,
+  SEGMENT_GAP_PX,
 } from "@/lib/constants";
 import { formatTimestamp } from "@/utils/time";
 import {
   clampZoom,
+  computeSegments,
   generateTicks,
   getMarkerDisplayDuration,
+  type Segment,
 } from "@/utils/waveutils";
 import { GripDots } from "@/app/_components/ui/icons";
 import Spinner from "@/app/_components/ui/Spinner";
@@ -75,41 +78,115 @@ const MarkerBadges = memo(function MarkerBadges({
   });
 });
 
-const WaveformMarkerRegions = memo(function WaveformMarkerRegions({
+const HALF_GAP_PX = SEGMENT_GAP_PX / 2;
+
+type SegmentedTimelineProps = {
+  duration: number;
+  segments: Segment[];
+  draggingMarkerId: string | null;
+  dragTimeSec: number;
+  onAdPointerDown: (
+    markerId: string,
+    timeSec: number,
+    e: React.PointerEvent,
+  ) => void;
+};
+
+const SegmentedTimeline = memo(function SegmentedTimeline({
   duration,
-  markers,
-}: MarkerDecorationsProps) {
-  if (duration <= 0) {
+  segments,
+  draggingMarkerId,
+  dragTimeSec,
+  onAdPointerDown,
+}: SegmentedTimelineProps) {
+  if (duration <= 0 || segments.length === 0) {
     return null;
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0">
-      {markers.map((marker) => {
-        const leftPct = (marker.timeSec / duration) * 100;
+    <div className="pointer-events-none absolute inset-0 z-[15]">
+      {segments.map((seg, i) => {
+        const isFirst = i === 0;
+        const isLast = i === segments.length - 1;
+
+        if (seg.kind === "episode") {
+          // Episode segments: transparent with rounded edges and gap insets
+          const roundedLeft = isFirst ? "rounded-l-lg" : "";
+          const roundedRight = isLast ? "rounded-r-lg" : "";
+
+          return (
+            <div
+              key={`ep-${i}`}
+              className={`absolute inset-y-0 ${roundedLeft} ${roundedRight}`}
+              style={{
+                left: `calc(${seg.startPct}% + ${isFirst ? 0 : HALF_GAP_PX}px)`,
+                width: `calc(${seg.widthPct}% - ${(isFirst ? 0 : HALF_GAP_PX) + (isLast ? 0 : HALF_GAP_PX)}px)`,
+              }}
+            />
+          );
+        }
+
+        // Ad segment
+        const marker = seg.marker;
         const meta = MARKER_TYPE_META[marker.type];
-        const displayDuration = getMarkerDisplayDuration(marker);
-        const widthPct =
-          displayDuration > 0 ? (displayDuration / duration) * 100 : 0;
+        const isDragging = draggingMarkerId === marker.id;
+        const effectiveStartPct = isDragging
+          ? (dragTimeSec / duration) * 100
+          : seg.startPct;
+
+        const firstAd = marker.markerAds[0]?.ad;
 
         return (
-          <div key={`${marker.id}-wave-overlay`}>
-            {widthPct > 0 && (
-              <div
-                className={`absolute inset-y-0 rounded-button-primary opacity-80 ${meta.waveformRegionClass}`}
-                style={{
-                  left: `${leftPct}%`,
-                  width: `${widthPct}%`,
-                  minWidth: 8,
-                }}
+          <div
+            key={marker.id}
+            className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 ${meta.waveformLineClass.replace("bg-", "border-")} ${meta.waveformRegionClass} ${isDragging ? "cursor-grabbing opacity-90 shadow-lg" : "cursor-grab"}`}
+            style={{
+              left: `calc(${effectiveStartPct}% + ${HALF_GAP_PX}px)`,
+              width: `calc(${seg.widthPct}% - ${SEGMENT_GAP_PX}px)`,
+              minWidth: 8,
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onAdPointerDown(marker.id, marker.timeSec, e);
+            }}
+          >
+            {/* Ad thumbnail */}
+            {firstAd && (
+              <video
+                src={firstAd.videoUrl}
+                preload="metadata"
+                muted
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40"
               />
             )}
 
-            <div
-              className={`absolute inset-y-0 w-0.5 ${meta.waveformLineClass}`}
-              style={{ left: `${leftPct}%` }}
-            />
+            {/* Grip handle */}
+            <div className="absolute inset-x-0 bottom-1 flex justify-center">
+              <GripDots className="size-4 text-current opacity-60" />
+            </div>
+
+            {/* Marker type label */}
+            <div className="absolute inset-x-0 top-1 flex justify-center">
+              <span className={`rounded px-1 py-0.5 text-[9px] font-bold leading-none ${meta.badgeClass}`}>
+                {meta.shortLabel}
+              </span>
+            </div>
           </div>
+        );
+      })}
+
+      {/* Gap separators — black lines between segments */}
+      {segments.slice(0, -1).map((seg, i) => {
+        const gapCenterPct = seg.startPct + seg.widthPct;
+        return (
+          <div
+            key={`gap-${i}`}
+            className="absolute inset-y-0 bg-black"
+            style={{
+              left: `calc(${gapCenterPct}% - ${HALF_GAP_PX}px)`,
+              width: `${SEGMENT_GAP_PX}px`,
+            }}
+          />
         );
       })}
     </div>
@@ -191,7 +268,7 @@ export default function WaveformTimeline() {
   const { episode, seek: rawSeek } = useEditorPlaybackControls();
   const currentTime = useEditorPlaybackCurrentTime();
   const duration = useEditorPlaybackDuration();
-  const { markers, canUndo, canRedo, undo, redo, resetAdChecks } =
+  const { markers, canUndo, canRedo, undo, redo, resetAdChecks, moveMarker } =
     useEditorMarkers();
   const seek = useCallback(
     (time: number) => {
@@ -209,6 +286,13 @@ export default function WaveformTimeline() {
   const [readySourceUrl, setReadySourceUrl] = useState<string | null>(null);
   const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
   const [dragTime, setDragTime] = useState(0);
+  const [draggingMarkerId, setDraggingMarkerId] = useState<string | null>(null);
+  const [dragTimeSec, setDragTimeSec] = useState(0);
+
+  const segments = useMemo(
+    () => computeSegments(markers, duration),
+    [markers, duration],
+  );
 
   const ticks = useMemo(() => {
     return duration > 0 ? generateTicks(duration) : [];
@@ -292,11 +376,27 @@ export default function WaveformTimeline() {
     };
   }, [episode.sourceUrl]);
 
-  const handleZoomChange = useCallback((nextZoom: number) => {
-    const clampedZoom = clampZoom(nextZoom);
-    setZoom(clampedZoom);
-    wsRef.current?.zoom(clampedZoom);
-  }, []);
+  const handleZoomChange = useCallback(
+    (nextZoom: number) => {
+      const clampedZoom = clampZoom(nextZoom);
+      setZoom(clampedZoom);
+      wsRef.current?.zoom(clampedZoom);
+
+      // Scroll so the playhead stays centered in the viewport
+      const viewport = scrollViewportRef.current;
+      if (!viewport || duration <= 0) return;
+
+      requestAnimationFrame(() => {
+        const track = viewport.firstElementChild as HTMLElement | null;
+        if (!track) return;
+        const trackWidth = track.scrollWidth;
+        const playheadX = (currentTimeRef.current / duration) * trackWidth;
+        const scrollTarget = playheadX - viewport.clientWidth / 2;
+        viewport.scrollLeft = Math.max(0, scrollTarget);
+      });
+    },
+    [duration],
+  );
 
   const handlePlayheadDrag = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -344,6 +444,43 @@ export default function WaveformTimeline() {
     [duration],
   );
 
+  const handleAdPointerDown = useCallback(
+    (markerId: string, timeSec: number, e: React.PointerEvent) => {
+      e.preventDefault();
+      setDraggingMarkerId(markerId);
+      setDragTimeSec(timeSec);
+
+      const track = scrollViewportRef.current
+        ?.firstElementChild as HTMLElement | null;
+      if (!track) return;
+
+      const el = e.currentTarget as HTMLElement;
+      el.setPointerCapture(e.pointerId);
+
+      let latestTime = timeSec;
+
+      const onMove = (pe: PointerEvent) => {
+        const rect = track.getBoundingClientRect();
+        const x = Math.max(0, Math.min(pe.clientX - rect.left, rect.width));
+        latestTime = Math.max(0, Math.min((x / rect.width) * duration, duration));
+        setDragTimeSec(latestTime);
+      };
+
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onUp);
+        setDraggingMarkerId(null);
+        moveMarker(markerId, Math.round(latestTime));
+      };
+
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
+    },
+    [duration, moveMarker],
+  );
+
   return (
     <div className="flex min-w-0 w-full flex-col gap-content-gap-xs rounded-2xl border border-border-default bg-surface p-content-p-xs md:p-content-p-sm">
       <WaveformToolbar
@@ -359,7 +496,7 @@ export default function WaveformTimeline() {
 
       <div
         ref={scrollViewportRef}
-        className="w-full max-w-full overflow-x-auto pt-6 ml-4"
+        className="w-full max-w-full overflow-x-auto pt-6 px-4"
       >
         <div
           className="relative min-w-full"
@@ -380,7 +517,13 @@ export default function WaveformTimeline() {
               marginTop: WAVE_TOP_PADDING,
             }}
           >
-            <WaveformMarkerRegions duration={duration} markers={markers} />
+            <SegmentedTimeline
+              duration={duration}
+              segments={segments}
+              draggingMarkerId={draggingMarkerId}
+              dragTimeSec={dragTimeSec}
+              onAdPointerDown={handleAdPointerDown}
+            />
 
             {isWaveformLoading && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-fuchsia-300/85 backdrop-blur-[1px]">

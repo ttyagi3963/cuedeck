@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Download } from "lucide-react";
 import { generationJobResultSchema } from "@/contracts/generation";
 import { useEditor } from "@/context/EditorContext";
 import { useJob } from "@/hooks/useGeneration";
@@ -85,7 +86,7 @@ export default function GeneratedPreviewPanel() {
 
   if (jobQuery.isLoading && !activeJob) {
     return (
-      <div className="rounded-ad-markers border border-border-default bg-surface p-content-p-sm text-sm text-text-muted">
+      <div className=" border-t border-border-default bg-surface p-content-p-sm text-sm text-text-muted">
         Checking the latest generation status...
       </div>
     );
@@ -93,17 +94,15 @@ export default function GeneratedPreviewPanel() {
 
   if (jobQuery.isError) {
     return (
-      <div className="rounded-ad-markers border border-danger/30 bg-notification-badge/5 px-4 py-3 text-sm text-text-danger">
-        <div className="flex flex-col gap-content-gap-sm lg:flex-row lg:items-center lg:justify-between">
-          <p>
-            {jobQuery.error instanceof Error
-              ? jobQuery.error.message
-              : "Failed to load the latest generation status"}
-          </p>
-          <Button variant="outline" onClick={openGenerateDialog}>
-            Open render dialog
-          </Button>
-        </div>
+      <div className="flex flex-col gap-content-gap-sm  border-t border-danger/30 bg-notification-badge/5 px-4 py-3 text-sm text-text-danger">
+        <p>
+          {jobQuery.error instanceof Error
+            ? jobQuery.error.message
+            : "Failed to load the latest generation status"}
+        </p>
+        <Button variant="outline" onClick={openGenerateDialog}>
+          Open render dialog
+        </Button>
       </div>
     );
   }
@@ -114,39 +113,32 @@ export default function GeneratedPreviewPanel() {
 
   if (activeJob.status === "QUEUED" || activeJob.status === "PROCESSING") {
     return (
-      <div className="rounded-ad-markers border border-border-default bg-background-page px-4 py-3 text-sm">
-        <div className="flex flex-col gap-content-gap-sm lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span className="rounded-full bg-background-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-text-on-primary">
-                Rendering
-              </span>
-              <p className="font-semibold text-text-heading">
-                Final video generation is running in the background.
-              </p>
-            </div>
-            <p className="text-text-muted">
-              You can keep editing, switch pages, or come back later. This
-              editor will restore the latest render status for this episode.
-            </p>
-          </div>
-
-          <div className="flex min-w-[220px] flex-col gap-3 lg:items-end">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-                {activeJob.status}
-              </span>
-              <span className="rounded-full bg-trend-positive/10 px-3 py-1 text-lg font-bold text-trend-positive">
-                {activeJob.progress}%
-              </span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-trend-positive/20">
-              <div
-                className="h-full rounded-full bg-trend-positive transition-[width] duration-500"
-                style={{ width: `${activeJob.progress}%` }}
-              />
-            </div>
-          </div>
+      <div className="flex flex-col gap-content-gap-sm border-t border-border-default bg-background-page px-4 py-3 text-sm">
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-background-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-text-on-primary">
+            Rendering
+          </span>
+          <span className="font-semibold text-text-heading">
+            Final video generation is running in the background.
+          </span>
+        </div>
+        <p className="text-text-muted">
+          You can keep editing, switch pages, or come back later. This editor
+          will restore the latest render status for this episode.
+        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+            {activeJob.status}
+          </span>
+          <span className="rounded-full bg-trend-positive/10 px-3 py-1 text-lg font-bold text-trend-positive">
+            {activeJob.progress}%
+          </span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-trend-positive/20">
+          <div
+            className="h-full rounded-full bg-trend-positive transition-[width] duration-500"
+            style={{ width: `${activeJob.progress}%` }}
+          />
         </div>
       </div>
     );
@@ -154,23 +146,19 @@ export default function GeneratedPreviewPanel() {
 
   if (activeJob.status === "FAILED") {
     return (
-      <div className="rounded-ad-markers border border-danger/30 bg-notification-badge/5 px-4 py-3 text-sm text-text-danger">
-        <div className="flex flex-col gap-content-gap-sm lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span className="rounded-full bg-danger px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-                Failed
-              </span>
-              <p className="font-semibold text-danger">
-                Final video generation did not finish successfully.
-              </p>
-            </div>
-            <p>{activeJob.error ?? "Please try generating the video again."}</p>
-          </div>
-          <Button variant="outline" onClick={openGenerateDialog}>
-            Try again
-          </Button>
+      <div className="flex flex-col gap-content-gap-sm rounded-ad-markers border border-danger/30 bg-notification-badge/5 px-4 py-3 text-sm text-text-danger">
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-danger px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
+            Failed
+          </span>
+          <p className="font-semibold text-danger">
+            Final video generation did not finish successfully.
+          </p>
         </div>
+        <p>{activeJob.error ?? "Please try generating the video again."}</p>
+        <Button variant="outline" onClick={openGenerateDialog}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -206,80 +194,79 @@ export default function GeneratedPreviewPanel() {
   }
 
   return (
-    <div className="rounded-ad-markers border border-border-default bg-background-page px-4 py-3 text-sm">
-      <div className="flex flex-col gap-content-gap-sm lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-trend-positive px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              Preview
-            </span>
-            <p className="font-semibold text-text-heading">
-              Final video is ready for preview.
-            </p>
-          </div>
-          <p className="text-text-muted">
-            Switch the editor between the original upload and the generated HLS
-            stream, or lock the preview to a specific rendition.
-          </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+    <div className="flex flex-col gap-content-gap-sm border-t border-border-default bg-background-page px-4 py-3 text-sm">
+      <div className="flex items-center gap-3">
+        <span className="rounded-full bg-trend-positive px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
+          Preview
+        </span>
+        <p className="font-semibold text-text-heading">
+          Final video is ready for preview.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-content-gap-sm">
+        {sourceOptions.length > 0 ? (
+          <label className="flex items-center gap-3">
+            <span className="font-semibold text-text-heading">Quality</span>
+            <select
+              value={selectedSource?.id ?? "adaptive"}
+              onChange={(event) => handleSourceChange(event.target.value)}
+              className="rounded-button-primary border border-border-default bg-surface px-3 py-2 text-sm font-medium text-text-heading outline-none transition-colors focus:border-background-primary"
+            >
+              {sourceOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-content-gap-sm">
+        <span className="text-xs text-text-muted">Changed your markers?</span>
+        <Button variant="outline" onClick={openGenerateDialog}>
+          Regenerate
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Link
+          href={parsedGenerationResult?.storedFile.url ?? "#"}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
+        >
+          Download MP4
+        </Link>
+        {hlsPackage ? (
+          <Link
+            href={hlsPackage.masterPlaylist.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
+          >
+            Stream HLS
+          </Link>
+        ) : null}
+      </div>
+      {hlsPackage ? (
+        <div className="flex flex-wrap items-center gap-3">
+          {hlsPackage.variants.map((variant) => (
             <Link
-              href={parsedGenerationResult?.storedFile.url ?? "#"}
+              key={variant.name}
+              href={variant.playlist.url}
               target="_blank"
               rel="noreferrer"
-              className="text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
+              download={`${variant.name}.m3u8`}
+              className="flex items-center gap-1 text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
             >
-              Open generated MP4
+              <Download size={12} />
+              {variant.name}
             </Link>
-            {hlsPackage ? (
-              <Link
-                href={hlsPackage.masterPlaylist.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
-              >
-                Open HLS master playlist
-              </Link>
-            ) : null}
-          </div>
+          ))}
         </div>
-
-        <div className="flex flex-col gap-content-gap-sm lg:items-end">
-          {sourceOptions.length > 0 ? (
-            <label className="flex items-center gap-3">
-              <span className="font-semibold text-text-heading">Quality</span>
-              <select
-                value={selectedSource?.id ?? "adaptive"}
-                onChange={(event) => handleSourceChange(event.target.value)}
-                className="rounded-button-primary border border-border-default bg-surface px-3 py-2 text-sm font-medium text-text-heading outline-none transition-colors focus:border-background-primary"
-              >
-                {sourceOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          <div className="flex gap-content-gap-sm">
-            <Button variant="outline" onClick={playOriginalSource}>
-              Source
-            </Button>
-            <Button
-              variant={
-                playbackSourceKind === "generated" ? "primary" : "outline"
-              }
-              onClick={handlePlayGenerated}
-              disabled={!selectedSource}
-            >
-              Generated HLS
-            </Button>
-            <Button variant="outline" onClick={openGenerateDialog}>
-              Regenerate
-            </Button>
-          </div>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

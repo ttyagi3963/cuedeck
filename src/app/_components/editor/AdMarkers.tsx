@@ -4,6 +4,7 @@ import { useEditor } from "@/context/EditorContext";
 import Button from "@/app/_components/ui/Button";
 import { Plus, MagicWand } from "@/app/_components/ui/icons";
 import MarkerList from "./MarkerList";
+import GeneratedPreviewPanel from "./GeneratedPreviewPanel";
 
 export default function AdMarkers() {
   const {
@@ -36,6 +37,8 @@ export default function AdMarkers() {
           Automatically place <MagicWand />
         </Button>
       </div>
+
+      <GeneratedPreviewPanel />
     </div>
   );
 }

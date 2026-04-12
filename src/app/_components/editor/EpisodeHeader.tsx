@@ -14,18 +14,18 @@ export default function EpisodeHeader({
 }: EpisodeHeaderProps) {
   return (
     <div className="flex flex-col gap-content-gap-sm">
-      <Link
+      {/* <Link
         href={ROUTES.ads}
         className="text-sm font-semibold text-text-muted hover:text-text-heading"
       >
         Ads
-      </Link>
+      </Link> */}
       <h1 className="text-3xl font-bold leading-9 text-text-heading">
-        {title}
+        {title}{" "}
+        <span className="text-base font-semibold text-text-muted">
+          Episode {episodeNumber} • {publishedAt}
+        </span>
       </h1>
-      <p className="text-base font-semibold text-text-muted">
-        Episode {episodeNumber} • {publishedAt}
-      </p>
     </div>
   );
 }

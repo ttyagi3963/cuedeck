@@ -46,3 +46,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+src/app/_components/editor/GeneratedPreviewPanel.tsx
+.claude/launch.json
+.claude/settings.local.json

@@ -76,6 +76,7 @@ export const WAVE_BAR_GAP = 4;
 export const WAVE_BAR_RADIUS = 9999;
 export const WAVE_BAR_COLOR = "#FFFFFF";
 export const WAVE_ZOOM_STEP = 10;
+export const SEGMENT_GAP_PX = 4;
 
 // Undo / Redo
 export const MAX_UNDO_HISTORY = 50;

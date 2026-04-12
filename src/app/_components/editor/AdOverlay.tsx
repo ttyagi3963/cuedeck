@@ -28,6 +28,7 @@ export default function AdOverlay({ ad, onEnded }: AdOverlayProps) {
         src={ad.videoUrl}
         className="h-full w-full object-contain"
         autoPlay
+        muted
         playsInline
         onEnded={onEnded}
         onPlaying={() => setIsBuffering(false)}

@@ -31,6 +31,7 @@ export default function TranscriptPanel() {
   const { toast } = useToast();
   const transcriptQuery = useTranscriptPanel(episode.id);
   const startTranscriptionMutation = useStartTranscription(episode.id);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const segmentRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const lastScrolledSegmentIdRef = useRef<string | null>(null);
 
@@ -66,10 +67,25 @@ export default function TranscriptPanel() {
     }
 
     lastScrolledSegmentIdRef.current = activeSegmentId;
-    segmentRefs.current.get(activeSegmentId)?.scrollIntoView({
-      block: "nearest",
-      behavior: "smooth",
-    });
+    const el = segmentRefs.current.get(activeSegmentId);
+    const container = scrollContainerRef.current;
+    if (el && container) {
+      // Get position relative to the scroll container, not offsetParent
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const relativeTop = elRect.top - containerRect.top + container.scrollTop;
+      const relativeBottom = relativeTop + elRect.height;
+
+      // Only scroll if the element is outside the visible area of the container
+      if (relativeTop < container.scrollTop) {
+        container.scrollTo({ top: relativeTop, behavior: "smooth" });
+      } else if (relativeBottom > container.scrollTop + container.clientHeight) {
+        container.scrollTo({
+          top: relativeBottom - container.clientHeight,
+          behavior: "smooth",
+        });
+      }
+    }
   }, [activeSegmentId]);
 
   async function handleStartTranscription() {
@@ -183,7 +199,7 @@ export default function TranscriptPanel() {
       )}
 
       {hasTranscript && (
-        <div className="max-h-[320px] overflow-y-auto rounded-dialog border border-border-default bg-background-page">
+        <div ref={scrollContainerRef} className="max-h-[320px] overflow-y-auto rounded-dialog border border-border-default bg-background-page">
           <div className="flex flex-col">
             {segments.map((segment) => {
               const isActive = segment.id === activeSegmentId;
