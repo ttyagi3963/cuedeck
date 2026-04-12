@@ -23,6 +23,22 @@ export function generateTicks(duration: number): number[] {
   return ticks;
 }
 
+export function generateMiniTicks(duration: number): number[] {
+  const interval = getTickInterval(duration);
+  const miniInterval = interval / 5;
+  const minis: number[] = [];
+  const tickSet = new Set(generateTicks(duration));
+
+  for (let time = 0; time <= duration; time += miniInterval) {
+    const rounded = Math.round(time * 100) / 100;
+    if (!tickSet.has(rounded)) {
+      minis.push(rounded);
+    }
+  }
+
+  return minis;
+}
+
 export function getMarkerDisplayDuration(marker: Marker): number {
   const durations = marker.markerAds.map((markerAd) => markerAd.ad.duration);
   if (durations.length === 0) return 0;

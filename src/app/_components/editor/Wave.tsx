@@ -25,6 +25,7 @@ import {
   clampZoom,
   computeSegments,
   generateTicks,
+  generateMiniTicks,
   getMarkerDisplayDuration,
   type Segment,
 } from "@/utils/waveutils";
@@ -47,6 +48,7 @@ type PlayheadOverlayProps = {
 type TimelineTicksProps = {
   duration: number;
   ticks: number[];
+  miniTicks: number[];
 };
 
 const PLAYHEAD_EDGE_SAFE_INSET_PX = 2;
@@ -175,20 +177,6 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
         );
       })}
 
-      {/* Gap separators — black lines between segments */}
-      {segments.slice(0, -1).map((seg, i) => {
-        const gapCenterPct = seg.startPct + seg.widthPct;
-        return (
-          <div
-            key={`gap-${i}`}
-            className="absolute inset-y-0 bg-black"
-            style={{
-              left: `calc(${gapCenterPct}% - ${HALF_GAP_PX}px)`,
-              width: `${SEGMENT_GAP_PX}px`,
-            }}
-          />
-        );
-      })}
     </div>
   );
 });
@@ -234,6 +222,7 @@ const PlayheadOverlay = memo(function PlayheadOverlay({
 const TimelineTicks = memo(function TimelineTicks({
   duration,
   ticks,
+  miniTicks,
 }: TimelineTicksProps) {
   if (duration <= 0) {
     return null;
@@ -241,6 +230,18 @@ const TimelineTicks = memo(function TimelineTicks({
 
   return (
     <div className="relative mt-2 h-5">
+      {miniTicks.map((tick) => {
+        const pct = (tick / duration) * 100;
+        return (
+          <div
+            key={`mini-${tick}`}
+            className="absolute -translate-x-1/2"
+            style={{ left: `${pct}%` }}
+          >
+            <div className="mx-auto h-1 w-px bg-border-subtle/50" />
+          </div>
+        );
+      })}
       {ticks.map((tick) => {
         const pct = (tick / duration) * 100;
         return (
@@ -296,6 +297,9 @@ export default function WaveformTimeline() {
 
   const ticks = useMemo(() => {
     return duration > 0 ? generateTicks(duration) : [];
+  }, [duration]);
+  const miniTicks = useMemo(() => {
+    return duration > 0 ? generateMiniTicks(duration) : [];
   }, [duration]);
   const displayTime = isDraggingPlayhead ? dragTime : currentTime;
   const isWaveformLoading = readySourceUrl !== episode.sourceUrl;
@@ -508,8 +512,6 @@ export default function WaveformTimeline() {
             onPointerDown={handlePlayheadDrag}
           />
 
-          <MarkerBadges duration={duration} markers={markers} />
-
           <div
             className="relative z-0 overflow-hidden rounded-dialog border-4 border-black bg-fuchsia-300 shadow-inner"
             style={{
@@ -541,7 +543,7 @@ export default function WaveformTimeline() {
             />
           </div>
 
-          <TimelineTicks duration={duration} ticks={ticks} />
+          <TimelineTicks duration={duration} ticks={ticks} miniTicks={miniTicks} />
         </div>
       </div>
     </div>
