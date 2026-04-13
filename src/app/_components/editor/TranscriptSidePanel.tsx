@@ -49,7 +49,7 @@ export default function TranscriptSidePanel() {
   return (
     <>
       {/* Open panel — desktop */}
-      <div className="hidden lg:flex shrink-0 w-[360px] flex-col border-l border-border-default bg-surface overflow-hidden transition-[width] duration-300">
+      <div className="hidden lg:flex shrink-0 w-[360px] max-h-screen sticky top-0 flex-col border-l border-border-default bg-surface overflow-hidden transition-[width] duration-300">
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <span className="text-sm font-bold text-text-heading">Transcript</span>
           <button
@@ -61,7 +61,7 @@ export default function TranscriptSidePanel() {
             <PanelRightClose className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-hidden px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
           <TranscriptPanel />
         </div>
       </div>

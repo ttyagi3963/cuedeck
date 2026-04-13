@@ -20,7 +20,7 @@ export default function EpisodeHeader({
       >
         Ads
       </Link> */}
-      <h1 className="text-3xl font-bold leading-9 text-text-heading">
+      <h1 className="text-3xl font-bold leading-9 text-text-heading capitalize">
         {title}{" "}
         <span className="text-base font-semibold text-text-muted">
           Episode {episodeNumber} • {publishedAt}

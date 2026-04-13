@@ -1,18 +1,16 @@
 "use client";
 
-import {
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { useDeferredValue, useEffect, useMemo, useRef } from "react";
 import clsx from "clsx";
 import type { TranscriptSegment } from "@/contracts/transcript";
 import {
   useEditor,
   useEditorPlaybackCurrentTime,
 } from "@/context/EditorContext";
-import { useStartTranscription, useTranscriptPanel } from "@/hooks/useTranscript";
+import {
+  useStartTranscription,
+  useTranscriptPanel,
+} from "@/hooks/useTranscript";
 import { useToast } from "@/hooks/useToast";
 import { formatTimestamp } from "@/utils/time";
 import Button from "@/app/_components/ui/Button";
@@ -20,12 +18,7 @@ import Button from "@/app/_components/ui/Button";
 const EMPTY_SEGMENTS: TranscriptSegment[] = [];
 
 export default function TranscriptPanel() {
-  const {
-    episode,
-    seek,
-    playbackSourceKind,
-    playOriginalSource,
-  } = useEditor();
+  const { episode, seek, playbackSourceKind, playOriginalSource } = useEditor();
   const currentTime = useEditorPlaybackCurrentTime();
   const deferredCurrentTime = useDeferredValue(currentTime);
   const { toast } = useToast();
@@ -57,12 +50,17 @@ export default function TranscriptPanel() {
       return activeSegment.id;
     }
 
-    return segments.findLast((segment) => deferredCurrentTime >= segment.startTime)
-      ?.id ?? null;
+    return (
+      segments.findLast((segment) => deferredCurrentTime >= segment.startTime)
+        ?.id ?? null
+    );
   }, [segments, deferredCurrentTime, playbackSourceKind]);
 
   useEffect(() => {
-    if (!activeSegmentId || lastScrolledSegmentIdRef.current === activeSegmentId) {
+    if (
+      !activeSegmentId ||
+      lastScrolledSegmentIdRef.current === activeSegmentId
+    ) {
       return;
     }
 
@@ -79,7 +77,10 @@ export default function TranscriptPanel() {
       // Only scroll if the element is outside the visible area of the container
       if (relativeTop < container.scrollTop) {
         container.scrollTo({ top: relativeTop, behavior: "smooth" });
-      } else if (relativeBottom > container.scrollTop + container.clientHeight) {
+      } else if (
+        relativeBottom >
+        container.scrollTop + container.clientHeight
+      ) {
         container.scrollTo({
           top: relativeBottom - container.clientHeight,
           behavior: "smooth",
@@ -98,7 +99,9 @@ export default function TranscriptPanel() {
       toast(startedMessage);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Failed to start transcription";
+        error instanceof Error
+          ? error.message
+          : "Failed to start transcription";
       toast(message, "error");
     }
   }
@@ -112,25 +115,31 @@ export default function TranscriptPanel() {
   }
 
   return (
-    <section className="flex min-w-0 flex-col gap-content-gap-sm rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm">
+    <section className="flex min-w-0 flex-col   bg-surface  ">
       <div className="flex flex-col gap-content-gap-sm lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 flex-col gap-content-gap-xxs">
-          <div className="flex items-center gap-content-gap-sm">
-            <h2 className="text-base font-bold text-text-heading">Transcript</h2>
+          <div className="gap-content-gap-sm ">
+            {/* <h2 className="text-base font-bold text-text-heading">Transcript</h2> */}
             {hasTranscript && (
-              <span className="rounded-full bg-background-page px-3 py-1 text-xs font-semibold text-text-muted">
-                {segments.length} {segments.length === 1 ? "segment" : "segments"}
-              </span>
+              <>
+                <p className="rounded-full bg-background-page px-3 py-1 text-sm font-semibold text-text-muted bg-trend-positive text-text-on-primary">
+                  {segments.length}{" "}
+                  {segments.length === 1 ? "segment" : "segments"}
+                </p>
+                <p className="text-sm text-text-muted pt-content-p-xs">
+                  Click any segment to jump the player to that moment in the
+                  episode.
+                </p>
+              </>
             )}
           </div>
-          <p className="text-sm text-text-muted">
-            Click any segment to jump the player to that moment in the episode.
-          </p>
         </div>
 
         {!isProcessing && (
           <Button
-            variant={startTranscriptionMutation.isPending ? "disabled" : "outline"}
+            variant={
+              startTranscriptionMutation.isPending ? "disabled" : "outline"
+            }
             onClick={handleStartTranscription}
             disabled={startTranscriptionMutation.isPending}
           >
@@ -145,8 +154,8 @@ export default function TranscriptPanel() {
 
       {playbackSourceKind === "generated" && (
         <div className="rounded-dialog border border-border-default bg-background-page p-content-p-sm text-sm text-text-muted">
-          Transcript timing follows the source episode. Click any segment below to
-          switch back to the source player and scrub accurately.
+          Transcript timing follows the source episode. Click any segment below
+          to switch back to the source player and scrub accurately.
         </div>
       )}
 
@@ -154,7 +163,9 @@ export default function TranscriptPanel() {
         <div className="rounded-dialog border border-border-default bg-background-page p-content-p-sm text-sm text-text-muted">
           <div className="flex items-center justify-between gap-content-gap-sm">
             <div className="flex flex-col gap-content-gap-xxs">
-              <p className="font-semibold text-text-heading">Transcribing audio</p>
+              <p className="font-semibold text-text-heading">
+                Transcribing audio
+              </p>
               <p>You can keep editing markers while the transcript cooks.</p>
             </div>
             <span className="rounded-full bg-trend-positive/10 px-3 py-1 text-base font-bold text-trend-positive">
@@ -172,8 +183,12 @@ export default function TranscriptPanel() {
 
       {latestJob?.status === "FAILED" && (
         <div className="rounded-dialog border border-border-default bg-background-page p-content-p-sm text-sm text-text-danger">
-          <p className="font-semibold text-text-danger-strong">Transcript generation failed</p>
-          <p className="mt-2">{latestJob.error ?? "Unknown transcription error"}</p>
+          <p className="font-semibold text-text-danger-strong">
+            Transcript generation failed
+          </p>
+          <p className="mt-2">
+            {latestJob.error ?? "Unknown transcription error"}
+          </p>
         </div>
       )}
 
@@ -191,15 +206,21 @@ export default function TranscriptPanel() {
         </div>
       )}
 
-      {!hasTranscript && !isProcessing && !transcriptQuery.isLoading && !transcriptQuery.isError && (
-        <div className="rounded-dialog border border-dashed border-border-default bg-background-page p-content-p-sm text-sm text-text-muted">
-          Generate a transcript to turn the spoken content into a clickable
-          scrubbing rail for this episode.
-        </div>
-      )}
+      {!hasTranscript &&
+        !isProcessing &&
+        !transcriptQuery.isLoading &&
+        !transcriptQuery.isError && (
+          <div className="rounded-dialog border border-dashed border-border-default bg-background-page p-content-p-sm text-sm text-text-muted">
+            Generate a transcript to turn the spoken content into a clickable
+            scrubbing rail for this episode.
+          </div>
+        )}
 
       {hasTranscript && (
-        <div ref={scrollContainerRef} className="max-h-[320px] lg:max-h-none lg:flex-1 overflow-y-auto rounded-dialog border border-border-default bg-background-page">
+        <div
+          ref={scrollContainerRef}
+          className="max-h-[320px] lg:max-h-none lg:flex-1 overflow-y-auto rounded-dialog border border-border-default bg-background-page"
+        >
           <div className="flex flex-col">
             {segments.map((segment) => {
               const isActive = segment.id === activeSegmentId;
@@ -218,9 +239,7 @@ export default function TranscriptPanel() {
                   onClick={() => handleSeekToSegment(segment.startTime)}
                   className={clsx(
                     "flex w-full items-start gap-content-gap-sm border-b border-border-default px-4 py-3 text-left transition-colors last:border-b-0",
-                    isActive
-                      ? "bg-trend-positive/10"
-                      : "hover:bg-surface",
+                    isActive ? "bg-trend-positive/10" : "hover:bg-surface",
                   )}
                 >
                   <span
