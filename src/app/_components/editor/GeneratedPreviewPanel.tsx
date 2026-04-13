@@ -210,10 +210,11 @@ export default function GeneratedPreviewPanel() {
           </label>
         ) : null}
 
-        <label className="flex items-center gap-content-gap-xs ">
+        <label className="flex items-center gap-content-gap-xs">
           <p className="text-xs font-semibold text-text-heading">Download</p>
           <select
             defaultValue=""
+            style={{ width: 120 }}
             onChange={(event) => {
               const url = event.target.value;
               if (url) {
@@ -221,7 +222,6 @@ export default function GeneratedPreviewPanel() {
                 event.target.value = "";
               }
             }}
-            style={{ width: 120 }}
             className="rounded-button-primary border border-border-default bg-surface px-2 py-1 text-xs font-medium text-text-heading outline-none transition-colors focus:border-background-primary capitalize"
           >
             <option value="" disabled>

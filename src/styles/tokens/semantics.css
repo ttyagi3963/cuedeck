@@ -31,6 +31,7 @@
   --font-weight-extrabold: var(--cd-font-weight-extrabold);
 
   --sidebar-width: var(--cd-sidebar-width);
+  --sidebar-collapsed-width: var(--cd-sidebar-collapsed-width);
   --sidebar-padding: var(--cd-spacing-8);
   --layout-columns: var(--cd-sidebar-width) 1fr;
   --spacing-nav-height: var(--cd-nav-height);

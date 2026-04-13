@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
-import SideNavigation from "./_components/navigation/SideNavigation";
 import TopNavigation from "./_components/navigation/TopNavigation";
+import AppGrid from "./_components/layout/AppGrid";
 import Footer from "./_components/navigation/Footer";
 
 const manropeSans = Manrope({
@@ -32,10 +32,7 @@ export default function RootLayout({
         <Providers>
           <div className="mx-auto flex w-full flex-1 flex-col max-w-[var(--layout-max-width)] shadow-sm">
             <TopNavigation />
-            <div className="grid min-w-0 flex-1 grid-cols-1 lg:grid-cols-[var(--layout-columns)] bg-background-page relative">
-              <SideNavigation />
-              <main className="min-w-0 bg-background-page flex flex-col">{children}</main>
-            </div>
+            <AppGrid>{children}</AppGrid>
             <Footer />
           </div>
         </Providers>

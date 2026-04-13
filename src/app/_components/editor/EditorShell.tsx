@@ -6,7 +6,6 @@ import VideoPlayer from "./VideoPlayer";
 import VideoControls from "./VideoControls";
 import Waveform from "./Wave";
 import AdMarkers from "./AdMarkers";
-import TranscriptPanel from "./TranscriptPanel";
 
 const CreateMarkerDialog = dynamic(() => import("./CreateMarkerDialog"), {
   ssr: false,
@@ -75,7 +74,6 @@ export default function EditorShell() {
       <div className="flex min-w-0 flex-col gap-content-gap-lg">
         <Waveform />
       </div>
-      <TranscriptPanel />
     </>
   );
 }

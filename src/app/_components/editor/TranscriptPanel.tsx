@@ -199,7 +199,7 @@ export default function TranscriptPanel() {
       )}
 
       {hasTranscript && (
-        <div ref={scrollContainerRef} className="max-h-[320px] overflow-y-auto rounded-dialog border border-border-default bg-background-page">
+        <div ref={scrollContainerRef} className="max-h-[320px] lg:max-h-none lg:flex-1 overflow-y-auto rounded-dialog border border-border-default bg-background-page">
           <div className="flex flex-col">
             {segments.map((segment) => {
               const isActive = segment.id === activeSegmentId;

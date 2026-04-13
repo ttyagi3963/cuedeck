@@ -73,21 +73,21 @@ export default async function EditorRoute({ params }: EditorPageParams) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="flex flex-col gap-page-gap p-content-p-xs lg:p-page-padding">
-        <EpisodeHeader
-          title={episode.title}
-          episodeNumber={episodeNumber}
-          publishedAt={new Date(episode.createdAt).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-        />
-        <EditorPage
-          episode={resolvedEpisode}
-          initialGenerationJobId={latestGenerationJob?.id ?? null}
-        />
-      </div>
+      <EditorPage
+        episode={resolvedEpisode}
+        initialGenerationJobId={latestGenerationJob?.id ?? null}
+        header={
+          <EpisodeHeader
+            title={episode.title}
+            episodeNumber={episodeNumber}
+            publishedAt={new Date(episode.createdAt).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          />
+        }
+      />
     </HydrationBoundary>
   );
 }
