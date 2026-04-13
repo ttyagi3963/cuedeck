@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="en" className={`${manropeSans.variable}  h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <Providers>
-          <div className="mx-auto flex w-full flex-1 flex-col max-w-[var(--layout-max-width)] shadow-sm">
+          <div className="flex w-full flex-1 flex-col min-w-0 shadow-sm">
             <TopNavigation />
             <AppGrid>{children}</AppGrid>
             <Footer />

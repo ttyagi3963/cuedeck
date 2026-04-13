@@ -28,7 +28,7 @@ export default function VideoControls() {
     redo,
   } = useEditor();
   return (
-    <div className="flex items-center justify-between gap-content-gap-xs rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm [&_*]:cursor-pointer">
+    <div className="flex max-w-[816px] items-center justify-between gap-content-gap-xs rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm [&_*]:cursor-pointer">
       <Button
         variant="ghost"
         onClick={jumpToStart}

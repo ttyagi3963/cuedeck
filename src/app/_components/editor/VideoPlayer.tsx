@@ -34,7 +34,7 @@ export default function VideoPlayer() {
   }, []);
 
   return (
-    <div className="group/video relative aspect-video w-full overflow-hidden rounded-dialog bg-video-bg">
+    <div className="group/video relative aspect-video w-full max-w-[816px] max-h-[460px] overflow-hidden rounded-dialog bg-video-bg">
       {adState.isPlayingAd && adState.currentAd && (
         <AdOverlay ad={adState.currentAd} onEnded={onAdEnded} />
       )}

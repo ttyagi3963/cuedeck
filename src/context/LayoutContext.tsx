@@ -27,14 +27,31 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [isTranscriptPanelOpen, setIsTranscriptPanelOpen] = useState(false);
+  const [userToggledTranscript, setUserToggledTranscript] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
     if (stored === "true") {
       setIsSidebarCollapsed(true);
     }
+    // Auto-open transcript on wide screens
+    if (window.innerWidth >= 1680) {
+      setIsTranscriptPanelOpen(true);
+    }
     setHasMounted(true);
   }, []);
+
+  // Auto-open/close transcript on resize unless user has manually toggled
+  useEffect(() => {
+    if (!hasMounted || userToggledTranscript) return;
+
+    function handleResize() {
+      setIsTranscriptPanelOpen(window.innerWidth >= 1680);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [hasMounted, userToggledTranscript]);
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarCollapsed((prev) => {
@@ -44,18 +61,18 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const openTranscriptPanel = useCallback(
-    () => setIsTranscriptPanelOpen(true),
-    [],
-  );
-  const closeTranscriptPanel = useCallback(
-    () => setIsTranscriptPanelOpen(false),
-    [],
-  );
-  const toggleTranscriptPanel = useCallback(
-    () => setIsTranscriptPanelOpen((prev) => !prev),
-    [],
-  );
+  const openTranscriptPanel = useCallback(() => {
+    setUserToggledTranscript(true);
+    setIsTranscriptPanelOpen(true);
+  }, []);
+  const closeTranscriptPanel = useCallback(() => {
+    setUserToggledTranscript(true);
+    setIsTranscriptPanelOpen(false);
+  }, []);
+  const toggleTranscriptPanel = useCallback(() => {
+    setUserToggledTranscript(true);
+    setIsTranscriptPanelOpen((prev) => !prev);
+  }, []);
 
   return (
     <LayoutContext.Provider
