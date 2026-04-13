@@ -112,7 +112,7 @@ export default function TranscriptPanel() {
   }
 
   return (
-    <section className="flex min-w-0 flex-col gap-content-gap-sm rounded-ad-markers border border-border-default bg-surface p-content-p-xs md:p-content-p-sm">
+    <section className="flex min-w-0 flex-col gap-content-gap-sm rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm">
       <div className="flex flex-col gap-content-gap-sm lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 flex-col gap-content-gap-xxs">
           <div className="flex items-center gap-content-gap-sm">

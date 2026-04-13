@@ -15,7 +15,7 @@ export default function Button({
   return (
     <button
       type="button"
-      className={clsx(BUTTON_VARIANT_CLASSES[variant], className)}
+      className={clsx(BUTTON_VARIANT_CLASSES[variant], className, "capitalize")}
       {...props}
     />
   );

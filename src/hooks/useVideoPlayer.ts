@@ -183,9 +183,6 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
         return;
       }
 
-      if (video.currentTime === 0) {
-        video.currentTime = 2;
-      }
       markReady();
     };
 

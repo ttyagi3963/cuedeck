@@ -28,44 +28,22 @@ export default function VideoControls() {
     redo,
   } = useEditor();
   return (
-    <div className="flex flex-wrap items-center justify-between gap-content-gap-md rounded-ad-markers border border-border-default bg-surface p-content-p-xs md:p-content-p-sm [&_*]:cursor-pointer">
-      <div className="flex items-center gap-content-gap-xs">
-        <Button
-          variant="ghost"
-          onClick={undo}
-          disabled={!canUndo}
-          aria-label="Undo"
-          className="text-text-heading disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Undo />
-        </Button>
+    <div className="flex items-center justify-between gap-content-gap-xs rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm [&_*]:cursor-pointer">
+      <Button
+        variant="ghost"
+        onClick={jumpToStart}
+        className="flex shrink-0 items-center gap-content-gap-xs"
+        aria-label="Jump to start"
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-subtle">
+          <SkipToStart className="text-text-heading" />
+        </span>
+        <span className="hidden xl:inline text-sm font-semibold text-text-muted">
+          Jump to start
+        </span>
+      </Button>
 
-        <Button
-          variant="ghost"
-          onClick={redo}
-          disabled={!canRedo}
-          aria-label="Redo"
-          className="text-text-heading disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Redo />
-        </Button>
-
-        <Button
-          variant="ghost"
-          onClick={jumpToStart}
-          className="flex items-center gap-content-gap-xs"
-          aria-label="Jump to start"
-        >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle">
-            <SkipToStart className="text-text-heading" />
-          </span>
-          <span className="hidden lg:inline text-sm font-semibold text-text-muted">
-            Jump to start
-          </span>
-        </Button>
-      </div>
-
-      <div className="flex items-center gap-content-gap-md xl:gap-page-gap order-last lg:order-none w-full lg:w-auto justify-center mt-2 lg:mt-0">
+      <div className="flex items-center gap-content-gap-xs lg:gap-content-gap-md">
         <Button
           variant="ghost"
           onClick={() => skip(-10)}
@@ -73,7 +51,9 @@ export default function VideoControls() {
           className="flex items-center gap-content-gap-xs"
         >
           <ClockRewind className="text-text-heading" />
-          <span className="hidden sm:inline text-sm font-semibold text-text-muted">10s</span>
+          <span className="hidden lg:inline text-sm font-semibold text-text-muted">
+            10s
+          </span>
         </Button>
 
         <Button
@@ -109,7 +89,9 @@ export default function VideoControls() {
           aria-label="Skip forward 10 seconds"
           className="flex items-center gap-content-gap-xs"
         >
-          <span className="hidden sm:inline text-sm font-semibold text-text-muted">10s</span>
+          <span className="hidden lg:inline text-sm font-semibold text-text-muted">
+            10s
+          </span>
           <ClockForward className="text-text-heading" />
         </Button>
       </div>
@@ -117,13 +99,13 @@ export default function VideoControls() {
       <Button
         variant="ghost"
         onClick={jumpToEnd}
-        className="flex items-center gap-content-gap-xs"
+        className="flex shrink-0 items-center gap-content-gap-xs"
         aria-label="Jump to end"
       >
-        <span className="hidden lg:inline text-sm font-semibold text-text-muted">
+        <span className="hidden xl:inline text-sm font-semibold text-text-muted">
           Jump to end
         </span>
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-subtle">
           <SkipToEnd className="text-text-heading" />
         </span>
       </Button>

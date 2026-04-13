@@ -1,4 +1,6 @@
 @theme {
+  --breakpoint-lg: 1025px;
+
   --color-background-page: var(--cd-color-zinc-50);
   --color-background-primary: var(--cd-color-zinc-900);
   --color-text-heading: var(--cd-color-zinc-800);
@@ -34,8 +36,8 @@
   --spacing-nav-height: var(--cd-nav-height);
   --layout-max-width: var(--cd-layout-max-width);
 
-  --spacing-page-padding: var(--cd-spacing-16);
-  --spacing-page-gap: var(--cd-spacing-8);
+  --spacing-page-padding: var(--cd-spacing-4);
+  --spacing-page-gap: var(--cd-spacing-4);
   --spacing-content-gap-sm: var(--cd-spacing-4);
   --spacing-content-gap-lg: var(--cd-spacing-8);
 
@@ -59,12 +61,12 @@
   --color-badge-ab-text: var(--cd-color-orange-700);
 
   --spacing-ad-markers-width: var(--cd-ad-markers-width);
-  --spacing-ad-markers-padding: var(--cd-spacing-8);
+  --spacing-ad-markers-padding: var(--cd-spacing-4);
   --radius-ad-markers: var(--cd-radius-xl);
   --spacing-ad-markers-actions-gap: var(--cd-spacing-3);
 
   --spacing-marker-list-gap: var(--cd-spacing-3);
-  --spacing-marker-list-padding-x: var(--cd-spacing-8);
+  --spacing-marker-list-padding-x: var(--cd-spacing-4);
   --spacing-marker-list-empty-padding-y: var(--cd-spacing-6);
 
   --spacing-dialog-min-width: var(--cd-dialog-min-width);

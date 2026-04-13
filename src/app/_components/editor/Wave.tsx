@@ -486,7 +486,7 @@ export default function WaveformTimeline() {
   );
 
   return (
-    <div className="flex min-w-0 w-full flex-col gap-content-gap-xs rounded-2xl border border-border-default bg-surface p-content-p-xs md:p-content-p-sm">
+    <div className="flex min-w-0 w-full flex-col gap-content-gap-xs rounded-2xl border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm">
       <WaveformToolbar
         canUndo={canUndo}
         canRedo={canRedo}

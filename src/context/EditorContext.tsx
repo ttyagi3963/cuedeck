@@ -166,7 +166,7 @@ export function useEditor(): EditorContextValue {
 
   function jumpToStart() {
     suppressAdChecks();
-    rawSeek(2);
+    rawSeek(0);
     markAllMarkersAsPlayed();
     unsuppressAdChecks();
   }

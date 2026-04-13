@@ -96,7 +96,7 @@ export default function MarkerList({
         items={markers.map((m) => m.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex flex-col gap-marker-list-gap px-marker-list-padding-x">
+        <div className="flex max-h-[200px] flex-col gap-marker-list-gap overflow-y-auto px-marker-list-padding-x">
           {markers.map((marker, index) => (
             <MarkerRow
               key={marker.id}

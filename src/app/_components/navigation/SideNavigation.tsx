@@ -41,7 +41,7 @@ export default function SideNavigation() {
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <div className="flex h-full flex-col justify-between overflow-y-auto px-8 py-8">
+        <div className="flex h-full flex-col justify-between overflow-y-auto px-ad-markers-padding py-ad-markers-padding">
           <div>
             <Button
               variant="primary"

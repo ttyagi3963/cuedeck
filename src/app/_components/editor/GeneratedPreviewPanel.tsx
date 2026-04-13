@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download } from "lucide-react";
 import { generationJobResultSchema } from "@/contracts/generation";
 import { useEditor } from "@/context/EditorContext";
 import { useJob } from "@/hooks/useGeneration";
@@ -21,7 +19,6 @@ export default function GeneratedPreviewPanel() {
     playbackSourceKind,
     setGeneratedPlaybackSource,
     playGeneratedSource,
-    playOriginalSource,
     openGenerateDialog,
   } = useEditor();
   const { toast } = useToast();
@@ -184,34 +181,25 @@ export default function GeneratedPreviewPanel() {
     }
   }
 
-  function handlePlayGenerated() {
-    if (!selectedSource) {
-      return;
-    }
-
-    setGeneratedPlaybackSource(selectedSource.url);
-    playGeneratedSource();
-  }
-
   return (
-    <div className="flex flex-col gap-content-gap-sm border-t border-border-default bg-background-page px-4 py-3 text-sm">
-      <div className="flex items-center gap-3">
-        <span className="rounded-full bg-trend-positive px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
+    <div className="flex flex-col gap-content-gap-sm rounded-b-ad-markers border-t border-border-default px-4 py-3 text-sm">
+      <div className="flex items-center gap-2">
+        <p className="rounded-full bg-trend-positive px-3 py-1 text-xs font-bold uppercase tracking-wider text-text-on-primary">
           Preview
-        </span>
+        </p>
         <p className="font-semibold text-text-heading">
           Final video is ready for preview.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-content-gap-sm">
+      <div className="flex items-center gap-content-gap-sm">
         {sourceOptions.length > 0 ? (
-          <label className="flex items-center gap-3">
-            <span className="font-semibold text-text-heading">Quality</span>
+          <label className="flex items-center gap-content-gap-xs">
+            <p className="text-xs font-semibold text-text-heading">Quality</p>
             <select
               value={selectedSource?.id ?? "adaptive"}
               onChange={(event) => handleSourceChange(event.target.value)}
-              className="rounded-button-primary border border-border-default bg-surface px-3 py-2 text-sm font-medium text-text-heading outline-none transition-colors focus:border-background-primary"
+              className="rounded-button-primary border border-border-default bg-surface px-2 py-1 text-xs font-medium text-text-heading outline-none transition-colors focus:border-background-primary capitalize"
             >
               {sourceOptions.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -221,52 +209,40 @@ export default function GeneratedPreviewPanel() {
             </select>
           </label>
         ) : null}
-      </div>
 
-      <div className="flex items-center gap-content-gap-sm">
-        <span className="text-xs text-text-muted">Changed your markers?</span>
-        <Button variant="outline" onClick={openGenerateDialog}>
-          Regenerate
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href={parsedGenerationResult?.storedFile.url ?? "#"}
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
-        >
-          Download MP4
-        </Link>
-        {hlsPackage ? (
-          <Link
-            href={hlsPackage.masterPlaylist.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
+        <label className="flex items-center gap-content-gap-xs ">
+          <p className="text-xs font-semibold text-text-heading">Download</p>
+          <select
+            defaultValue=""
+            onChange={(event) => {
+              const url = event.target.value;
+              if (url) {
+                window.open(url, "_blank", "noreferrer");
+                event.target.value = "";
+              }
+            }}
+            style={{ width: 120 }}
+            className="rounded-button-primary border border-border-default bg-surface px-2 py-1 text-xs font-medium text-text-heading outline-none transition-colors focus:border-background-primary capitalize"
           >
-            Stream HLS
-          </Link>
-        ) : null}
+            <option value="" disabled>
+              Select format
+            </option>
+            {hlsPackage ? (
+              <option value={hlsPackage.masterPlaylist.url}>
+                Stitched HLS: Original quality
+              </option>
+            ) : null}
+            <option value={parsedGenerationResult?.storedFile.url ?? ""}>
+              Stitched MP4: Original quality
+            </option>
+            {hlsPackage?.variants.map((variant) => (
+              <option key={variant.name} value={variant.playlist.url}>
+                HLS: {variant.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
-      {hlsPackage ? (
-        <div className="flex flex-wrap items-center gap-3">
-          {hlsPackage.variants.map((variant) => (
-            <Link
-              key={variant.name}
-              href={variant.playlist.url}
-              target="_blank"
-              rel="noreferrer"
-              download={`${variant.name}.m3u8`}
-              className="flex items-center gap-1 text-sm font-medium text-background-primary underline underline-offset-4 hover:text-text-muted"
-            >
-              <Download size={12} />
-              {variant.name}
-            </Link>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

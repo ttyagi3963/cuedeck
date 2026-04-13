@@ -67,7 +67,7 @@ export default function EditorShell() {
             onConfirm={editMarker}
           />
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-content-gap-sm rounded-ad-markers border border-border-default bg-surface p-content-p-xs md:p-ad-markers-padding">
+        <div className="flex min-w-0 flex-1 flex-col gap-content-gap-sm rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-ad-markers-padding">
           <VideoPlayer />
           <VideoControls />
         </div>
