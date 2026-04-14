@@ -21,7 +21,7 @@ export default function EpisodeHeader({
         Ads
       </Link> */}
       <h1 className="text-3xl font-bold leading-9 text-text-heading">
-        {title}{" "}
+        {title}
         <span className="text-base font-semibold text-text-muted">
           Episode {episodeNumber} • {publishedAt}
         </span>
