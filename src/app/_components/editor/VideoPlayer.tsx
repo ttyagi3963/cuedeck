@@ -18,6 +18,7 @@ export default function VideoPlayer() {
     onAdEnded,
     markers,
     moveMarker,
+    isMuted,
   } = useEditor();
 
   const [hoverState, setHoverState] = useState<{
@@ -57,7 +58,7 @@ export default function VideoPlayer() {
         preload="metadata"
         onClick={toggle}
         autoPlay
-        muted
+        muted={isMuted}
       />
 
       <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8 opacity-0 transition-all duration-200 group-hover/video:translate-y-0 group-hover/video:opacity-100">

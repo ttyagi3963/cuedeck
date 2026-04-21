@@ -36,4 +36,11 @@ export class PrismaEpisodeRepositoryImpl implements IEpisodeRepository {
       where: { id },
     });
   }
+
+  async updateWaveformUrl(id: string, waveformUrl: string | null): Promise<void> {
+    await prisma.episode.update({
+      where: { id },
+      data: { waveformUrl },
+    });
+  }
 }

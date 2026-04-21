@@ -12,6 +12,8 @@ import {
   SkipToEnd,
   Undo,
   Redo,
+  VolumeOn,
+  VolumeOff,
 } from "@/app/_components/ui/icons";
 import Button from "@/app/_components/ui/Button";
 
@@ -26,6 +28,8 @@ export default function VideoControls() {
     canRedo,
     undo,
     redo,
+    isMuted,
+    toggleMute,
   } = useEditor();
   return (
     <div className="flex items-center justify-between gap-content-gap-xs rounded-ad-markers border border-border-default bg-surface p-content-p-xs lg:p-content-p-sm [&_*]:cursor-pointer">
@@ -96,19 +100,34 @@ export default function VideoControls() {
         </Button>
       </div>
 
-      <Button
-        variant="ghost"
-        onClick={jumpToEnd}
-        className="flex shrink-0 items-center gap-content-gap-xs"
-        aria-label="Jump to end"
-      >
-        <span className="hidden xl:inline text-sm font-semibold text-text-muted">
-          Jump to end
-        </span>
-        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-subtle">
-          <SkipToEnd className="text-text-heading" />
-        </span>
-      </Button>
+      <div className="flex items-center gap-content-gap-xs">
+        <Button
+          variant="ghost"
+          onClick={toggleMute}
+          aria-label={isMuted ? "Unmute" : "Mute"}
+          className="text-text-heading"
+        >
+          {isMuted ? (
+            <VolumeOff className="size-5" />
+          ) : (
+            <VolumeOn className="size-5" />
+          )}
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={jumpToEnd}
+          className="flex shrink-0 items-center gap-content-gap-xs"
+          aria-label="Jump to end"
+        >
+          <span className="hidden xl:inline text-sm font-semibold text-text-muted">
+            Jump to end
+          </span>
+          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-subtle">
+            <SkipToEnd className="text-text-heading" />
+          </span>
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createEpisodeSchema } from "@/contracts/episode";
-import { episodeService, storageService } from "@/lib/container";
+import { episodeService, storageService, waveformService } from "@/lib/container";
 import { toErrorResponse } from "@/app/api/_lib/errors";
 import {
   resolveEpisodeMediaUrl,
@@ -27,6 +27,15 @@ export async function POST(request: Request) {
     }
 
     const episode = await episodeService.create(body);
+
+    try {
+      await waveformService.start(episode.id);
+    } catch (error) {
+      console.error(
+        `[episodes.POST] Failed to enqueue waveform job for ${episode.id}`,
+        error,
+      );
+    }
 
     return NextResponse.json(await resolveEpisodeMediaUrl(episode, storageService), {
       status: 201,

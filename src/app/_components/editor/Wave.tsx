@@ -2,7 +2,6 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
-import type { Marker } from "@/contracts/marker";
 import {
   useEditorMarkers,
   useEditorPlaybackControls,
@@ -26,18 +25,13 @@ import {
   computeSegments,
   generateTicks,
   generateMiniTicks,
-  getMarkerDisplayDuration,
   type Segment,
 } from "@/utils/waveutils";
+import { fetchPeaks, fetchWaveformStatus } from "@/utils/waveformPeaks";
 import { GripDots } from "@/app/_components/ui/icons";
 import Spinner from "@/app/_components/ui/Spinner";
 import { MARKER_TYPE_META } from "./markerUi";
 import WaveformToolbar from "./WaveformToolbar";
-
-type MarkerDecorationsProps = {
-  duration: number;
-  markers: Marker[];
-};
 
 type PlayheadOverlayProps = {
   displayTime: number;
@@ -54,31 +48,6 @@ type TimelineTicksProps = {
 const PLAYHEAD_EDGE_SAFE_INSET_PX = 2;
 const PLAYHEAD_HANDLE_WIDTH_PX = 24;
 const PLAYHEAD_HANDLE_HALF_WIDTH_PX = PLAYHEAD_HANDLE_WIDTH_PX / 2;
-
-const MarkerBadges = memo(function MarkerBadges({
-  duration,
-  markers,
-}: MarkerDecorationsProps) {
-  if (duration <= 0) {
-    return null;
-  }
-
-  return markers.map((marker) => {
-    const leftPct = (marker.timeSec / duration) * 100;
-    const meta = MARKER_TYPE_META[marker.type];
-
-    return (
-      <div key={marker.id}>
-        <div
-          className={`absolute top-1 z-20 -translate-x-1/2 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none whitespace-nowrap shadow-sm ${meta.badgeClass}`}
-          style={{ left: `${leftPct}%` }}
-        >
-          {meta.shortLabel}
-        </div>
-      </div>
-    );
-  });
-});
 
 const HALF_GAP_PX = SEGMENT_GAP_PX / 2;
 
@@ -282,9 +251,20 @@ export default function WaveformTimeline() {
   );
   const seekRef = useRef(seek);
 
+  type WaveformInit =
+    | { kind: "loading" }
+    | { kind: "pending"; status: "QUEUED" | "PROCESSING"; progress: number }
+    | { kind: "ready"; waveformUrl: string }
+    | { kind: "fallback" };
+
   const [zoom, setZoom] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [readySourceUrl, setReadySourceUrl] = useState<string | null>(null);
+  const [init, setInit] = useState<WaveformInit>(() =>
+    episode.waveformUrl
+      ? { kind: "ready", waveformUrl: episode.waveformUrl }
+      : { kind: "loading" },
+  );
   const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
   const [dragTime, setDragTime] = useState(0);
   const [draggingMarkerId, setDraggingMarkerId] = useState<string | null>(null);
@@ -302,12 +282,26 @@ export default function WaveformTimeline() {
     return duration > 0 ? generateMiniTicks(duration) : [];
   }, [duration]);
   const displayTime = isDraggingPlayhead ? dragTime : currentTime;
-  const isWaveformLoading = readySourceUrl !== episode.sourceUrl;
+  const isPending = init.kind === "loading" || init.kind === "pending";
+  const isWaveformLoading =
+    isPending || readySourceUrl !== episode.sourceUrl;
+
+  // The peaks-file duration and the video-element duration can differ by a
+  // fraction of a second. If our wrap ends up even 1px narrower than
+  // WaveSurfer's internal ceil(duration * minPxPerSec), WaveSurfer flags the
+  // waveform as scrollable, enters its lazy-render path, and scroll events
+  // that happen in OUR outer container never fire its shadow-DOM scroll
+  // listener — so chunks past the initial viewport stay blank. An 8px buffer
+  // absorbs rounding + any duration-source drift and keeps WaveSurfer in its
+  // "render everything up front" path.
+  const WIDTH_BUFFER_PX = 8;
   const trackWidth =
     viewportWidth > 0
       ? Math.max(
           viewportWidth,
-          zoom > 0 && duration > 0 ? duration * zoom : viewportWidth,
+          zoom > 0 && duration > 0
+            ? Math.ceil(duration * zoom) + WIDTH_BUFFER_PX
+            : viewportWidth,
         )
       : undefined;
 
@@ -339,10 +333,55 @@ export default function WaveformTimeline() {
   }, []);
 
   useEffect(() => {
+    if (episode.waveformUrl) {
+      setInit({ kind: "ready", waveformUrl: episode.waveformUrl });
+      return;
+    }
+
+    setInit({ kind: "loading" });
+    const controller = new AbortController();
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    async function probe() {
+      try {
+        const res = await fetchWaveformStatus(episode.id, controller.signal);
+        if (controller.signal.aborted) return;
+
+        if (res.status === "READY" && res.waveformUrl) {
+          setInit({ kind: "ready", waveformUrl: res.waveformUrl });
+          return;
+        }
+        if (res.status === "QUEUED" || res.status === "PROCESSING") {
+          setInit({
+            kind: "pending",
+            status: res.status,
+            progress: res.progress,
+          });
+          timerId = setTimeout(probe, 2000);
+          return;
+        }
+        setInit({ kind: "fallback" });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn("[Wave] waveform status fetch failed", error);
+        setInit({ kind: "fallback" });
+      }
+    }
+
+    probe();
+
+    return () => {
+      controller.abort();
+      if (timerId !== null) clearTimeout(timerId);
+    };
+  }, [episode.id, episode.waveformUrl]);
+
+  useEffect(() => {
+    if (init.kind !== "ready" && init.kind !== "fallback") return;
     const container = waveContainerRef.current;
     if (!container) return;
 
-    const ws = WaveSurfer.create({
+    const baseOptions = {
       container,
       height: WAVE_HEIGHT,
       waveColor: WAVE_BAR_COLOR,
@@ -352,55 +391,106 @@ export default function WaveformTimeline() {
       barWidth: WAVE_BAR_WIDTH,
       barGap: WAVE_BAR_GAP,
       barRadius: WAVE_BAR_RADIUS,
-      barAlign: "bottom",
+      barAlign: "bottom" as const,
       normalize: true,
       interact: true,
       dragToSeek: { debounceTime: 0 },
       autoScroll: true,
       autoCenter: false,
       hideScrollbar: false,
+    };
 
-      url: episode.sourceUrl,
-      media: document.createElement("audio"),
-    });
+    let ws: WaveSurfer | null = null;
+    const controller = new AbortController();
 
-    ws.on("ready", () => {
-      setReadySourceUrl(episode.sourceUrl);
-    });
+    function attach(instance: WaveSurfer) {
+      instance.on("ready", () => setReadySourceUrl(episode.sourceUrl));
+      instance.on("interaction", (nextTime: number) => seekRef.current(nextTime));
+      wsRef.current = instance;
+    }
 
-    ws.on("interaction", (nextTime: number) => {
-      seekRef.current(nextTime);
-    });
+    function createWithClientDecode() {
+      return WaveSurfer.create({
+        ...baseOptions,
+        url: episode.sourceUrl,
+        media: document.createElement("audio"),
+      });
+    }
 
-    wsRef.current = ws;
+    async function boot() {
+      if (init.kind === "ready") {
+        try {
+          const parsed = await fetchPeaks(init.waveformUrl, controller.signal);
+          if (controller.signal.aborted) return;
+
+          const audio = document.createElement("audio");
+          audio.src = episode.sourceUrl;
+          audio.preload = "metadata";
+
+          ws = WaveSurfer.create({
+            ...baseOptions,
+            peaks: [parsed.peaks],
+            duration: parsed.durationSec,
+            media: audio,
+          });
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          console.warn(
+            "[Wave] peaks fetch failed, falling back to client decode",
+            error,
+          );
+          ws = createWithClientDecode();
+        }
+      } else {
+        ws = createWithClientDecode();
+      }
+
+      if (controller.signal.aborted) {
+        ws.destroy();
+        return;
+      }
+
+      attach(ws);
+    }
+
+    boot();
 
     return () => {
-      ws.destroy();
+      controller.abort();
+      ws?.destroy();
       wsRef.current = null;
     };
-  }, [episode.sourceUrl]);
+  }, [
+    episode.sourceUrl,
+    init.kind,
+    init.kind === "ready" ? init.waveformUrl : null,
+  ]);
 
-  const handleZoomChange = useCallback(
-    (nextZoom: number) => {
-      const clampedZoom = clampZoom(nextZoom);
-      setZoom(clampedZoom);
-      wsRef.current?.zoom(clampedZoom);
+  const handleZoomChange = useCallback((nextZoom: number) => {
+    setZoom(clampZoom(nextZoom));
+  }, []);
 
-      // Scroll so the playhead stays centered in the viewport
-      const viewport = scrollViewportRef.current;
-      if (!viewport || duration <= 0) return;
+  // Apply zoom AFTER the DOM has committed the new trackWidth. Otherwise
+  // WaveSurfer computes layout against a stale container width, flags the
+  // waveform as isScrollable, falls into its lazy-render path, and leaves
+  // off-screen chunks blank until its internal ResizeObserver fires ~100ms
+  // later. Running in an effect guarantees a correct single-pass render.
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || zoom <= 0) return;
 
-      requestAnimationFrame(() => {
-        const track = viewport.firstElementChild as HTMLElement | null;
-        if (!track) return;
-        const trackWidth = track.scrollWidth;
-        const playheadX = (currentTimeRef.current / duration) * trackWidth;
-        const scrollTarget = playheadX - viewport.clientWidth / 2;
-        viewport.scrollLeft = Math.max(0, scrollTarget);
-      });
-    },
-    [duration],
-  );
+    ws.zoom(zoom);
+
+    const viewport = scrollViewportRef.current;
+    if (!viewport || duration <= 0) return;
+    const track = viewport.firstElementChild as HTMLElement | null;
+    if (!track) return;
+
+    const tw = track.scrollWidth;
+    const playheadX = (currentTimeRef.current / duration) * tw;
+    const scrollTarget = playheadX - viewport.clientWidth / 2;
+    viewport.scrollLeft = Math.max(0, scrollTarget);
+  }, [zoom, duration]);
 
   const handlePlayheadDrag = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -529,10 +619,16 @@ export default function WaveformTimeline() {
 
             {isWaveformLoading && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-fuchsia-300/85 backdrop-blur-[1px]">
-                <div className="flex items-center gap-content-gap-md rounded-full border border-border-on-primary/60 bg-surface/80  py-2 shadow-sm">
+                <div className="flex items-center gap-content-gap-md rounded-full border border-border-on-primary/60 bg-surface/80 px-4 py-2 shadow-sm">
                   <Spinner size="sm" />
                   <span className="text-sm font-semibold text-text-heading">
-                    Building waveform...
+                    {init.kind === "pending" && init.status === "PROCESSING"
+                      ? `Preparing waveform from your upload… ${init.progress}%`
+                      : init.kind === "pending"
+                        ? "Preparing waveform from your upload…"
+                        : init.kind === "loading"
+                          ? "Checking waveform…"
+                          : "Building waveform…"}
                   </span>
                 </div>
               </div>

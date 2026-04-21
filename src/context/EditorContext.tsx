@@ -22,9 +22,11 @@ type EditorContextValue = {
   episode: Episode;
   videoRef: (node: HTMLVideoElement | null) => void;
   playback: PlaybackState;
+  isMuted: boolean;
   play: () => void;
   pause: () => void;
   toggle: () => void;
+  toggleMute: () => void;
   seek: (time: number) => void;
   skip: (seconds: number) => void;
   jumpToStart: () => void;
@@ -102,9 +104,11 @@ export function useEditor(): EditorContextValue {
   const {
     episode,
     videoRef,
+    isMuted,
     play,
     pause,
     toggle,
+    toggleMute,
     seek: rawSeek,
     skip,
     playbackSourceKind,
@@ -182,9 +186,11 @@ export function useEditor(): EditorContextValue {
     episode,
     videoRef,
     playback,
+    isMuted,
     play,
     pause,
     toggle,
+    toggleMute,
     seek,
     skip,
     jumpToStart,

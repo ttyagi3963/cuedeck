@@ -7,12 +7,18 @@ import {
   transcriptJobResultSchema,
   transcriptionResultSchema,
 } from "@/contracts/transcript";
+import {
+  waveformJobPayloadSchema,
+  waveformJobResultSchema,
+} from "@/contracts/waveform";
 import type { IJobService } from "@/services/job/IJobService";
 import type { ITranscriptService } from "@/services/transcript/ITranscriptService";
 import type { IAudioProcessor } from "@/services/audio/IAudioProcessor";
 import type { IStorageService } from "@/services/storage/IStorageService";
 import type { IVideoProcessor } from "@/services/video/IVideoProcessor";
 import type { ITranscriptionProvider } from "@/services/transcription/ITranscriptionProvider";
+import type { IEpisodeRepository } from "@/repositories/episode/IEpisodeRepository";
+import { generatePeaks } from "@/lib/audio/peaks";
 import { InfrastructureError } from "../errors/InfrastructureError";
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 10_000;
@@ -25,6 +31,7 @@ export class JobProcessor {
     private readonly audioProcessor: IAudioProcessor,
     private readonly videoProcessor: IVideoProcessor,
     private readonly transcriptionProvider: ITranscriptionProvider,
+    private readonly episodeRepository: IEpisodeRepository,
     private readonly heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
   ) {}
 
@@ -44,6 +51,9 @@ export class JobProcessor {
         break;
       case "TRANSCRIBE":
         await this.runTranscription(jobId);
+        break;
+      case "WAVEFORM":
+        await this.runWaveform(jobId);
         break;
       default:
         throw new InfrastructureError(`Unsupported job type: ${job.type}`, "UNSUPPORTED_JOB_TYPE");
@@ -157,6 +167,76 @@ export class JobProcessor {
     } finally {
       stopHeartbeat();
       await preparedAudio?.dispose();
+    }
+  }
+
+  private async runWaveform(jobId: string) {
+    const stopHeartbeat = this.startHeartbeat(jobId);
+
+    try {
+      const job = await this.jobService.findById(jobId);
+      if (!job) throw new Error(`Job ${jobId} not found`);
+
+      const payload = waveformJobPayloadSchema.parse(job.payload);
+
+      const existing = await this.episodeRepository.findById(payload.episodeId);
+      if (existing?.waveformUrl) {
+        await this.jobService.update(jobId, {
+          status: "COMPLETED",
+          progress: 100,
+          error: null,
+          result: waveformJobResultSchema.parse({
+            waveformUrl: existing.waveformUrl,
+            peakCount: 0,
+            peaksPerSecond: 20,
+            durationSec: existing.duration,
+            skipped: true,
+          }),
+          completedAt: new Date(),
+        });
+        return;
+      }
+
+      await this.jobService.update(jobId, {
+        status: "PROCESSING",
+        progress: 5,
+        error: null,
+        result: null,
+        startedAt: job.startedAt ?? new Date(),
+        completedAt: null,
+      });
+
+      const localPath = await this.storageService.provideLocalCopy(payload.sourceUrl);
+      await this.jobService.update(jobId, { progress: 25 });
+
+      const peaks = await generatePeaks(localPath);
+      await this.jobService.update(jobId, { progress: 70 });
+
+      const stored = await this.storageService.save({
+        bucket: "generated",
+        fileName: `waveforms/${payload.episodeId}.dat`,
+        contentType: "application/octet-stream",
+        buffer: peaks.buffer,
+      });
+
+      await this.episodeRepository.updateWaveformUrl(payload.episodeId, stored.path);
+
+      await this.jobService.update(jobId, {
+        status: "COMPLETED",
+        progress: 100,
+        error: null,
+        result: waveformJobResultSchema.parse({
+          waveformUrl: stored.url,
+          peakCount: peaks.peakCount,
+          peaksPerSecond: peaks.peaksPerSecond,
+          durationSec: peaks.durationSec,
+        }),
+        completedAt: new Date(),
+      });
+    } catch (error) {
+      await this.handleFailure(jobId, error, "Waveform generation failed");
+    } finally {
+      stopHeartbeat();
     }
   }
 

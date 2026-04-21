@@ -29,6 +29,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     duration: 0,
   });
   const [readySourceUrl, setReadySourceUrl] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
 
   const applyDirectSource = useCallback(
     (video: HTMLVideoElement, nextSrc: string) => {
@@ -117,6 +118,13 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     video.pause();
   }, []);
 
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+  }, []);
+
   const seek = useCallback((time: number) => {
     const video = videoRef.current;
     if (!video) return;
@@ -156,6 +164,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
 
     const onPlay = () => setState((prev) => ({ ...prev, isPlaying: true }));
     const onPause = () => setState((prev) => ({ ...prev, isPlaying: false }));
+    const onVolumeChange = () => setIsMuted(video.muted);
     const onLoadStart = () => setReadySourceUrl(null);
     const onWaiting = () => setReadySourceUrl(null);
     const markReady = () => setReadySourceUrl(src);
@@ -189,6 +198,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     video.addEventListener("loadstart", onLoadStart);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("volumechange", onVolumeChange);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("canplay", markReady);
     video.addEventListener("timeupdate", onTimeUpdate);
@@ -210,6 +220,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       video.removeEventListener("loadstart", onLoadStart);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("volumechange", onVolumeChange);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("canplay", markReady);
       video.removeEventListener("timeupdate", onTimeUpdate);
@@ -225,9 +236,11 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       ...state,
       isReady: readySourceUrl === src,
     },
+    isMuted,
     play,
     pause,
     toggle,
+    toggleMute,
     seek,
     skip,
     jumpToStart,

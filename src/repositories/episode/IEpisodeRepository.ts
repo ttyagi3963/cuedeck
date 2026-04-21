@@ -5,4 +5,5 @@ export interface IEpisodeRepository {
   findAll(): Promise<Episode[]>;
   create(input: CreateEpisodeInput): Promise<Episode>;
   delete(id: string): Promise<void>;
+  updateWaveformUrl(id: string, waveformUrl: string | null): Promise<void>;
 }

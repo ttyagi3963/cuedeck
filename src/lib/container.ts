@@ -39,6 +39,8 @@ import type { IGenerationService } from "@/services/generation/IGenerationServic
 import { GenerationServiceImpl } from "@/services/generation/GenerationServiceImpl";
 import type { ITranscriptionService } from "@/services/transcription/ITranscriptionService";
 import { TranscriptionServiceImpl } from "@/services/transcription/TranscriptionServiceImpl";
+import type { IWaveformService } from "@/services/waveform/IWaveformService";
+import { WaveformServiceImpl } from "@/services/waveform/WaveformServiceImpl";
 import type { IJobDispatcher } from "@/services/job/IJobDispatcher";
 import { DurableJobDispatcher } from "@/lib/jobs/DurableJobDispatcher";
 import { DurableJobWorker } from "@/lib/jobs/DurableJobWorker";
@@ -139,6 +141,7 @@ const jobProcessor = new JobProcessor(
   audioProcessor,
   videoProcessor,
   transcriptionProvider,
+  episodeRepository,
 );
 
 const jobDispatcher: IJobDispatcher = new DurableJobDispatcher();
@@ -179,3 +182,9 @@ export const transcriptionService: ITranscriptionService =
     audioProcessor,
     storageService,
   );
+
+export const waveformService: IWaveformService = new WaveformServiceImpl(
+  episodeService,
+  jobService,
+  jobDispatcher,
+);
