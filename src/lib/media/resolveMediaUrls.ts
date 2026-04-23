@@ -10,6 +10,9 @@ export async function resolveEpisodeMediaUrl(
   return {
     ...episode,
     sourceUrl: await storageService.getPublicUrl(episode.sourceUrl),
+    waveformUrl: episode.waveformUrl
+      ? await storageService.getPublicUrl(episode.waveformUrl)
+      : null,
   };
 }
 

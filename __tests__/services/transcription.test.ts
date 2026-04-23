@@ -14,6 +14,7 @@ const STUB_EPISODE: Episode = {
   title: "Episode 1",
   sourceUrl: "/videos/test-episode.mp4",
   duration: 1800,
+  waveformUrl: null,
   createdAt: new Date("2026-04-01T00:00:00.000Z"),
   updatedAt: new Date("2026-04-01T00:00:00.000Z"),
 };
@@ -65,6 +66,7 @@ function makeJobDispatcher(): IJobDispatcher {
   return {
     dispatchGenerateVideo: vi.fn().mockResolvedValue(undefined),
     dispatchTranscription: vi.fn().mockResolvedValue(undefined),
+    dispatchWaveform: vi.fn().mockResolvedValue(undefined),
   };
 }
 

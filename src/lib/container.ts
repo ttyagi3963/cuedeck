@@ -39,12 +39,16 @@ import type { IGenerationService } from "@/services/generation/IGenerationServic
 import { GenerationServiceImpl } from "@/services/generation/GenerationServiceImpl";
 import type { ITranscriptionService } from "@/services/transcription/ITranscriptionService";
 import { TranscriptionServiceImpl } from "@/services/transcription/TranscriptionServiceImpl";
+import type { IWaveformService } from "@/services/waveform/IWaveformService";
+import { WaveformServiceImpl } from "@/services/waveform/WaveformServiceImpl";
 import type { IJobDispatcher } from "@/services/job/IJobDispatcher";
 import { DurableJobDispatcher } from "@/lib/jobs/DurableJobDispatcher";
 import { DurableJobWorker } from "@/lib/jobs/DurableJobWorker";
 import { JobProcessor } from "@/lib/jobs/JobProcessor";
 import type { IAudioProcessor } from "@/services/audio/IAudioProcessor";
 import { FfmpegAudioProcessorImpl } from "@/services/audio/FfmpegAudioProcessorImpl";
+import type { IAudioPeaksProcessor } from "@/services/audio/IAudioPeaksProcessor";
+import { FfmpegAudioPeaksProcessorImpl } from "@/services/audio/FfmpegAudioPeaksProcessorImpl";
 import type { IVideoProcessor } from "@/services/video/IVideoProcessor";
 import { FfmpegVideoProcessorImpl } from "@/services/video/FfmpegVideoProcessorImpl";
 import type { ITranscriptionProvider } from "@/services/transcription/ITranscriptionProvider";
@@ -106,6 +110,7 @@ const jobRepository: IJobRepository = new PrismaJobRepositoryImpl();
 const transcriptRepository: ITranscriptRepository =
   new PrismaTranscriptRepositoryImpl();
 const audioProcessor: IAudioProcessor = new FfmpegAudioProcessorImpl();
+const audioPeaksProcessor: IAudioPeaksProcessor = new FfmpegAudioPeaksProcessorImpl();
 const videoProcessor: IVideoProcessor = new FfmpegVideoProcessorImpl();
 
 export const storageService: IStorageService = new StorageServiceImpl(
@@ -139,28 +144,43 @@ const jobProcessor = new JobProcessor(
   audioProcessor,
   videoProcessor,
   transcriptionProvider,
+  episodeRepository,
+  audioPeaksProcessor,
 );
 
 const jobDispatcher: IJobDispatcher = new DurableJobDispatcher();
 
-const globalForDurableJobs = globalThis as typeof globalThis & {
+// Store the worker on `process` (truly process-global in Node) rather than
+// globalThis, because Next.js dev-mode can isolate globalThis per route
+// evaluation, causing the singleton guard to miss and spin up duplicate
+// workers on every API hit. `process` is the one object Node guarantees
+// is shared across every module evaluation within a single process.
+type ProcessWithWorker = typeof process & {
   __cuedeckDurableJobWorker?: DurableJobWorker;
 };
 
 export function startDurableJobWorker() {
-  if (!globalForDurableJobs.__cuedeckDurableJobWorker) {
-    const worker = new DurableJobWorker(jobService, jobProcessor);
-    worker.start();
-    globalForDurableJobs.__cuedeckDurableJobWorker = worker;
+  const p = process as ProcessWithWorker;
+  if (p.__cuedeckDurableJobWorker) {
+    return p.__cuedeckDurableJobWorker;
   }
 
-  return globalForDurableJobs.__cuedeckDurableJobWorker;
+  const worker = new DurableJobWorker(jobService, jobProcessor);
+  worker.start();
+  p.__cuedeckDurableJobWorker = worker;
+  return worker;
 }
 
-if (
-  typeof window === "undefined" &&
-  (process.env.JOB_WORKER_AUTOSTART ?? "").trim().toLowerCase() === "true"
-) {
+// Autostart the durable worker in development by default, opt-in elsewhere.
+// - dev: on unless JOB_WORKER_AUTOSTART=false
+// - prod: off unless JOB_WORKER_AUTOSTART=true (separate `jobs:worker` process)
+// - test: off unless JOB_WORKER_AUTOSTART=true
+const autostartFlag = (process.env.JOB_WORKER_AUTOSTART ?? "").trim().toLowerCase();
+const autostartDefault = process.env.NODE_ENV === "development";
+const shouldAutostart =
+  autostartFlag === "true" || (autostartFlag === "" && autostartDefault);
+
+if (typeof window === "undefined" && shouldAutostart) {
   startDurableJobWorker();
 }
 
@@ -179,3 +199,9 @@ export const transcriptionService: ITranscriptionService =
     audioProcessor,
     storageService,
   );
+
+export const waveformService: IWaveformService = new WaveformServiceImpl(
+  episodeService,
+  jobService,
+  jobDispatcher,
+);

@@ -17,9 +17,11 @@ export type PlaybackSourceKind = "source" | "generated";
 type PlaybackControlsContextValue = {
   episode: Episode;
   videoRef: (node: HTMLVideoElement | null) => void;
+  isMuted: boolean;
   play: () => void;
   pause: () => void;
   toggle: () => void;
+  toggleMute: () => void;
   seek: (time: number) => void;
   skip: (seconds: number) => void;
   jumpToStart: () => void;
@@ -60,9 +62,11 @@ export function PlaybackProvider({
   const {
     videoRef,
     state: playback,
+    isMuted,
     play,
     pause,
     toggle,
+    toggleMute,
     seek,
     skip,
     jumpToStart,
@@ -90,9 +94,11 @@ export function PlaybackProvider({
     () => ({
       episode,
       videoRef,
+      isMuted,
       play,
       pause,
       toggle,
+      toggleMute,
       seek,
       skip,
       jumpToStart,
@@ -107,9 +113,11 @@ export function PlaybackProvider({
     [
       episode,
       videoRef,
+      isMuted,
       play,
       pause,
       toggle,
+      toggleMute,
       seek,
       skip,
       jumpToStart,

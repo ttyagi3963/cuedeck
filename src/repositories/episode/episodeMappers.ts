@@ -7,6 +7,7 @@ export function toEpisode(row: PrismaEpisode): ContractEpisode {
     title: row.title,
     sourceUrl: row.sourceUrl,
     duration: row.duration,
+    waveformUrl: row.waveformUrl,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

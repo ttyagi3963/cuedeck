@@ -18,4 +18,9 @@ export class DurableJobDispatcher implements IJobDispatcher {
     // No-op: Job is already QUEUED in DB.
     console.log(`[DurableJobDispatcher] Enqueued transcription job: ${jobId}`);
   }
+
+  async dispatchWaveform(jobId: string): Promise<void> {
+    // No-op: Job is already QUEUED in DB.
+    console.log(`[DurableJobDispatcher] Enqueued waveform job: ${jobId}`);
+  }
 }

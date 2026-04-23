@@ -29,6 +29,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     duration: 0,
   });
   const [readySourceUrl, setReadySourceUrl] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
 
   const applyDirectSource = useCallback(
     (video: HTMLVideoElement, nextSrc: string) => {
@@ -99,7 +100,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     if (!video) return;
 
     if (video.paused) {
-      void video.play();
+      // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
     } else {
       video.pause();
     }
@@ -108,13 +111,22 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
   const play = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    void video.play();
+    // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
   }, []);
 
   const pause = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     video.pause();
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
   }, []);
 
   const seek = useCallback((time: number) => {
@@ -130,7 +142,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     }));
 
     if (shouldResume) {
-      void video.play();
+      // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
     }
   }, []);
 
@@ -156,6 +170,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
 
     const onPlay = () => setState((prev) => ({ ...prev, isPlaying: true }));
     const onPause = () => setState((prev) => ({ ...prev, isPlaying: false }));
+    const onVolumeChange = () => setIsMuted(video.muted);
     const onLoadStart = () => setReadySourceUrl(null);
     const onWaiting = () => setReadySourceUrl(null);
     const markReady = () => setReadySourceUrl(src);
@@ -177,7 +192,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
         );
 
         if (pendingRestore.shouldResume) {
-          void video.play();
+          // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
         }
         markReady();
         return;
@@ -189,6 +206,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     video.addEventListener("loadstart", onLoadStart);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("volumechange", onVolumeChange);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("canplay", markReady);
     video.addEventListener("timeupdate", onTimeUpdate);
@@ -210,6 +228,7 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       video.removeEventListener("loadstart", onLoadStart);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("volumechange", onVolumeChange);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("canplay", markReady);
       video.removeEventListener("timeupdate", onTimeUpdate);
@@ -225,9 +244,11 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
       ...state,
       isReady: readySourceUrl === src,
     },
+    isMuted,
     play,
     pause,
     toggle,
+    toggleMute,
     seek,
     skip,
     jumpToStart,

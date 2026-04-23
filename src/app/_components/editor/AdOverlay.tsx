@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Ad } from "@/contracts/ad";
+import { useEditor } from "@/context/EditorContext";
 import Spinner from "@/app/_components/ui/Spinner";
 
 type AdOverlayProps = {
@@ -10,6 +11,7 @@ type AdOverlayProps = {
 };
 
 export default function AdOverlay({ ad, onEnded }: AdOverlayProps) {
+  const { isMuted } = useEditor();
   const [isBuffering, setIsBuffering] = useState(true);
 
   return (
@@ -28,7 +30,7 @@ export default function AdOverlay({ ad, onEnded }: AdOverlayProps) {
         src={ad.videoUrl}
         className="h-full w-full object-contain"
         autoPlay
-        muted
+        muted={isMuted}
         playsInline
         onEnded={onEnded}
         onPlaying={() => setIsBuffering(false)}

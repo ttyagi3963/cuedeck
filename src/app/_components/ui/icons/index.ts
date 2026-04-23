@@ -23,3 +23,5 @@ export { default as MagnifyPlus } from "./MagnifyPlus";
 export { default as MagnifyMinus } from "./MagnifyMinus";
 export { default as Undo } from "./Undo";
 export { default as Redo } from "./Redo";
+export { default as VolumeOn } from "./VolumeOn";
+export { default as VolumeOff } from "./VolumeOff";

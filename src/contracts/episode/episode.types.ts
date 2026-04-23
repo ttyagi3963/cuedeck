@@ -3,6 +3,7 @@ export interface Episode {
   title: string;
   sourceUrl: string;
   duration: number;
+  waveformUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

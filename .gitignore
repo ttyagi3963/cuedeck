@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/Scratch/*
 
 # testing
 /coverage
@@ -49,3 +50,5 @@ next-env.d.ts
 src/app/_components/editor/GeneratedPreviewPanel.tsx
 .claude/launch.json
 .claude/settings.local.json
+.claude/CLAUDE.md
+r2clone.ts
