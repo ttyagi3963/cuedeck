@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import type { Marker } from "@/contracts/marker";
+import type { AdInjectionState } from "@/hooks/useAdInjection";
 import {
   useEditorMarkers,
   useEditorPlaybackControls,
@@ -25,11 +26,17 @@ import { formatTimestamp } from "@/utils/time";
 import {
   clampZoom,
   computeSegments,
+  cursorPctFromEpisodeTime,
   generateTicks,
   generateMiniTicks,
   type Segment,
 } from "@/utils/waveutils";
-import { fetchPeaks, fetchWaveformStatus } from "@/utils/waveformPeaks";
+import {
+  fetchPeaks,
+  fetchWaveformStatus,
+  slicePeaks,
+  type ParsedPeaks,
+} from "@/utils/waveformPeaks";
 import { GripDots } from "@/app/_components/ui/icons";
 import Spinner from "@/app/_components/ui/Spinner";
 import { MARKER_TYPE_META } from "./markerUi";
@@ -38,6 +45,8 @@ import WaveformToolbar from "./WaveformToolbar";
 type PlayheadOverlayProps = {
   displayTime: number;
   duration: number;
+  segments: Segment[];
+  adState: AdInjectionState;
   onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 };
 
@@ -56,9 +65,11 @@ const HALF_GAP_PX = SEGMENT_GAP_PX / 2;
 type SegmentedTimelineProps = {
   duration: number;
   segments: Segment[];
+  peaks: ParsedPeaks | null;
   draggingMarkerId: string | null;
   dragTimeSec: number;
   pendingPosition: { markerId: string; timeSec: number } | null;
+  onSeekToGlobalTime: (time: number) => void;
   onAdPointerDown: (
     markerId: string,
     timeSec: number,
@@ -74,10 +85,119 @@ type AdTileProps = {
   onPointerDown: (e: React.PointerEvent) => void;
 };
 
+type EpisodeTileProps = {
+  peaks: ParsedPeaks;
+  tileStartSec: number;
+  tileDurationSec: number;
+  leftStyle: string;
+  widthStyle: string;
+  isFirst: boolean;
+  isLast: boolean;
+  onSeekToGlobalTime: (time: number) => void;
+};
+
+// Per-segment waveform tile: slices the parsed peaks to its own time range
+// and mounts an independent WaveSurfer. Having one tile per episode segment
+// (instead of a single canvas under the whole track) makes the ad markers
+// actually BREAK the waveform visually — they sit between distinct episode
+// tiles, each with its own rounded corners + border, so the timeline reads
+// as "video segments" rather than "ad overlays on a continuous strip".
+const EpisodeTile = memo(function EpisodeTile({
+  peaks,
+  tileStartSec,
+  tileDurationSec,
+  leftStyle,
+  widthStyle,
+  isFirst,
+  isLast,
+  onSeekToGlobalTime,
+}: EpisodeTileProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onSeekRef = useRef(onSeekToGlobalTime);
+  useEffect(() => {
+    onSeekRef.current = onSeekToGlobalTime;
+  }, [onSeekToGlobalTime]);
+
+  const slicedPeaks = useMemo(
+    () => slicePeaks(peaks, tileStartSec, tileStartSec + tileDurationSec),
+    [peaks, tileStartSec, tileDurationSec],
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || tileDurationSec <= 0) return;
+
+    const ws = WaveSurfer.create({
+      container,
+      height: WAVE_HEIGHT,
+      waveColor: WAVE_BAR_COLOR,
+      progressColor: WAVE_BAR_COLOR,
+      cursorColor: "transparent",
+      cursorWidth: 0,
+      barWidth: WAVE_BAR_WIDTH,
+      barGap: WAVE_BAR_GAP,
+      barRadius: WAVE_BAR_RADIUS,
+      barAlign: "bottom" as const,
+      normalize: true,
+      interact: true,
+      peaks: [slicedPeaks],
+      duration: tileDurationSec,
+      media: document.createElement("audio"),
+    });
+
+    ws.on("interaction", (localTime: number) => {
+      onSeekRef.current(tileStartSec + localTime);
+    });
+
+    return () => {
+      ws.destroy();
+    };
+  }, [slicedPeaks, tileDurationSec, tileStartSec]);
+
+  const roundedLeft = isFirst ? "rounded-l-lg" : "rounded-l";
+  const roundedRight = isLast ? "rounded-r-lg" : "rounded-r";
+
+  return (
+    <div
+      className={`pointer-events-auto absolute inset-y-0 overflow-hidden border-2 border-black bg-fuchsia-300 ${roundedLeft} ${roundedRight}`}
+      style={{ left: leftStyle, width: widthStyle }}
+    >
+      <div ref={containerRef} className="relative h-full w-full" />
+    </div>
+  );
+});
+
 // Pinning the thumbnail URL to the first one we see for a given ad.id keeps
 // <video src> stable across marker-query refetches. Without this, every
 // invalidation after moveMarker returns fresh signed R2 URLs, which React
 // sees as a new src and reloads every ad thumbnail's video element.
+// Per-marker-type styling for the inner elements of an ad tile:
+// - label pill at top uses a lighter shade so it reads on the tile bg
+// - grip pill at bottom uses a darker shade for affordance
+// - thumbnail title text uses the dark theme text color
+// Tailwind needs these class strings present verbatim at build time, so they
+// can't be templated dynamically — hard-coded per type.
+const AD_TILE_STYLES: Record<
+  Marker["type"],
+  { label: string; grip: string; title: string }
+> = {
+  AUTO: {
+    label: "bg-green-100 border border-green-900 text-green-900",
+    grip: "bg-green-400 text-green-900",
+    title: "text-green-900",
+  },
+  STATIC: {
+    label: "bg-blue-100 border border-blue-900 text-blue-900",
+    grip: "bg-blue-400 text-blue-900",
+    title: "text-blue-900",
+  },
+  AB: {
+    label: "bg-orange-100 border border-orange-900 text-orange-900",
+    grip: "bg-orange-400 text-orange-900",
+    title: "text-orange-900",
+  },
+};
+
 const AdTile = memo(function AdTile({
   marker,
   isDragging,
@@ -86,38 +206,86 @@ const AdTile = memo(function AdTile({
   onPointerDown,
 }: AdTileProps) {
   const meta = MARKER_TYPE_META[marker.type];
-  const firstAd = marker.markerAds[0]?.ad;
+  const styles = AD_TILE_STYLES[marker.type];
+  // Only show a concrete thumbnail when the marker has a single ad —
+  // then the user knows exactly which ad will play. For AUTO (random)
+  // and AB (test) markers with multiple ads, `resolveAd` picks at
+  // playback time, so pinning one thumbnail would mislead: the played
+  // ad wouldn't match the picture on the tile.
+  const isSingleAd = marker.markerAds.length === 1;
+  const displayedAd = isSingleAd ? marker.markerAds[0].ad : null;
   const stableVideoUrl = useMemo(
-    () => firstAd?.videoUrl,
+    () => displayedAd?.videoUrl,
     // Deliberately key on ad.id — we want to lock the URL we first saw for
     // this ad and ignore later resignings of the same content.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [firstAd?.id],
+    [displayedAd?.id],
   );
+  const adCount = marker.markerAds.length;
 
   return (
     <div
-      className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 ${meta.waveformLineClass.replace("bg-", "border-")} ${meta.waveformRegionClass} ${isDragging ? "cursor-grabbing opacity-90 shadow-lg" : "cursor-grab"}`}
-      style={{ left: leftStyle, width: widthStyle, minWidth: 8 }}
+      // Ad tiles must always paint ABOVE adjacent episode tiles — when the
+      // user drags an ad past a neighbor, the waveform tile should slide
+      // under the ad, not over it. Sibling DOM order isn't reliable here
+      // because the dragged ad can pass both earlier and later episode
+      // tiles. While dragging, bump even higher so the moving ad also
+      // floats above any static ad it momentarily overlaps.
+      className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 border-black ${meta.waveformRegionClass} ${isDragging ? "z-30 cursor-grabbing opacity-90 shadow-lg" : "z-20 cursor-grab"}`}
+      // Width comes straight from duration ratio — no minWidth clamp — so the
+      // ad tile occupies exactly its share of the timeline. At narrow widths
+      // the thumbnail/label collapse to the visible band; zooming in expands
+      // the tile enough to show the full inner layout.
+      style={{ left: leftStyle, width: widthStyle }}
       onPointerDown={onPointerDown}
     >
-      {stableVideoUrl && (
-        <video
-          src={stableVideoUrl}
-          preload="metadata"
-          muted
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40"
-        />
-      )}
-
-      <div className="absolute inset-x-0 bottom-1 flex justify-center">
-        <GripDots className="size-4 text-current opacity-60" />
-      </div>
-
-      <div className="absolute inset-x-0 top-1 flex justify-center">
-        <span className={`rounded px-1 py-0.5 text-[9px] font-bold leading-none ${meta.badgeClass}`}>
+      {/* Label pill at top */}
+      <div className="pointer-events-none absolute inset-x-0 top-1 flex justify-center">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${styles.label}`}
+        >
           {meta.shortLabel}
         </span>
+      </div>
+
+      {/* Single-ad markers show the concrete thumbnail edge-to-edge so
+          the user knows exactly what will play. Multi-ad markers
+          (AUTO/AB) instead show a count badge — which ad plays is
+          decided at playback time by resolveAd, so a thumbnail here
+          would be a lie. */}
+      {stableVideoUrl ? (
+        <>
+          <video
+            src={stableVideoUrl}
+            preload="metadata"
+            muted
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
+          {displayedAd?.title && (
+            <span
+              className={`pointer-events-none absolute inset-x-1 bottom-6 line-clamp-1 text-[7px] font-medium leading-tight text-center ${styles.title}`}
+            >
+              {displayedAd.title}
+            </span>
+          )}
+        </>
+      ) : (
+        // Multi-ad: show the count so the user can see at a glance
+        // that this slot rotates between N ads.
+        <span
+          className={`pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 text-center text-[9px] font-semibold leading-tight ${styles.title}`}
+        >
+          {adCount} ads
+        </span>
+      )}
+
+      {/* Grip pill at bottom */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center">
+        <div
+          className={`inline-flex items-center justify-center rounded px-1 py-0.5 ${styles.grip}`}
+        >
+          <GripDots className="size-3" />
+        </div>
       </div>
     </div>
   );
@@ -126,9 +294,11 @@ const AdTile = memo(function AdTile({
 const SegmentedTimeline = memo(function SegmentedTimeline({
   duration,
   segments,
+  peaks,
   draggingMarkerId,
   dragTimeSec,
   pendingPosition,
+  onSeekToGlobalTime,
   onAdPointerDown,
 }: SegmentedTimelineProps) {
   if (duration <= 0 || segments.length === 0) {
@@ -142,17 +312,37 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
         const isLast = i === segments.length - 1;
 
         if (seg.kind === "episode") {
-          const roundedLeft = isFirst ? "rounded-l-lg" : "";
-          const roundedRight = isLast ? "rounded-r-lg" : "";
+          // Position tiles exactly by their time share — no gap math. The
+          // 2 px black border on each tile provides visual separation where
+          // adjacent tiles meet; physical gaps would shrink the visible
+          // width below the tile's actual duration.
+          const leftStyle = `${seg.startPct}%`;
+          const widthStyle = `${seg.widthPct}%`;
+
+          if (!peaks) {
+            return (
+              <div
+                key={`ep-${i}`}
+                className={`absolute inset-y-0 border-2 border-black bg-fuchsia-300 ${isFirst ? "rounded-l-lg" : "rounded-l"} ${isLast ? "rounded-r-lg" : "rounded-r"}`}
+                style={{ left: leftStyle, width: widthStyle }}
+              />
+            );
+          }
+
+          const tileStartSec = (seg.startPct / 100) * duration;
+          const tileDurationSec = (seg.widthPct / 100) * duration;
 
           return (
-            <div
+            <EpisodeTile
               key={`ep-${i}`}
-              className={`absolute inset-y-0 ${roundedLeft} ${roundedRight}`}
-              style={{
-                left: `calc(${seg.startPct}% + ${isFirst ? 0 : HALF_GAP_PX}px)`,
-                width: `calc(${seg.widthPct}% - ${(isFirst ? 0 : HALF_GAP_PX) + (isLast ? 0 : HALF_GAP_PX)}px)`,
-              }}
+              peaks={peaks}
+              tileStartSec={tileStartSec}
+              tileDurationSec={tileDurationSec}
+              leftStyle={leftStyle}
+              widthStyle={widthStyle}
+              isFirst={isFirst}
+              isLast={isLast}
+              onSeekToGlobalTime={onSeekToGlobalTime}
             />
           );
         }
@@ -174,8 +364,8 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
             key={marker.id}
             marker={marker}
             isDragging={isDragging}
-            leftStyle={`calc(${effectiveStartPct}% + ${HALF_GAP_PX}px)`}
-            widthStyle={`calc(${seg.widthPct}% - ${SEGMENT_GAP_PX}px)`}
+            leftStyle={`${effectiveStartPct}%`}
+            widthStyle={`${seg.widthPct}%`}
             onPointerDown={(e) => {
               e.stopPropagation();
               onAdPointerDown(marker.id, marker.timeSec, e);
@@ -190,14 +380,44 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
 const PlayheadOverlay = memo(function PlayheadOverlay({
   displayTime,
   duration,
+  segments,
+  adState,
   onPointerDown,
 }: PlayheadOverlayProps) {
   if (duration <= 0) {
     return null;
   }
 
-  const progress = Math.max(0, Math.min(displayTime / duration, 1));
-  const left = `${progress * 100}%`;
+  // Cursor mapping:
+  // - While an ad is playing, the cursor moves linearly across the ad tile
+  //   tracking the ad video's elapsed time (adElapsedSec / ad.duration).
+  //   When the <video> is paused, onTimeUpdate stops firing so the cursor
+  //   naturally freezes in place — matching the intuition that "pause
+  //   pauses everything, including the ad, so the cursor stops too".
+  // - Otherwise, the cursor follows episode time with segment-aware
+  //   mapping so it never advances INTO an ad tile while the episode is
+  //   actually playing.
+  let progressPct: number;
+  if (adState.isPlayingAd && adState.currentAd) {
+    const currentAdId = adState.currentAd.id;
+    const adSeg = segments.find(
+      (seg) =>
+        seg.kind === "ad" &&
+        seg.marker.markerAds.some((ma) => ma.ad.id === currentAdId),
+    );
+    if (adSeg && adState.currentAd.duration > 0) {
+      const local = Math.max(
+        0,
+        Math.min(1, adState.adElapsedSec / adState.currentAd.duration),
+      );
+      progressPct = adSeg.startPct + local * adSeg.widthPct;
+    } else {
+      progressPct = cursorPctFromEpisodeTime(displayTime, segments);
+    }
+  } else {
+    progressPct = cursorPctFromEpisodeTime(displayTime, segments);
+  }
+  const left = `${progressPct}%`;
   const handleLeft = `clamp(${PLAYHEAD_EDGE_SAFE_INSET_PX - 5}px, calc(${left} - ${PLAYHEAD_HANDLE_HALF_WIDTH_PX}px), calc(100% - ${PLAYHEAD_HANDLE_WIDTH_PX + PLAYHEAD_EDGE_SAFE_INSET_PX}px))`;
   const lineLeft = `clamp(${PLAYHEAD_EDGE_SAFE_INSET_PX + 2}px, ${left}, calc(100% - ${PLAYHEAD_EDGE_SAFE_INSET_PX}px))`;
 
@@ -272,13 +492,26 @@ export default function WaveformTimeline() {
   const waveContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WaveSurfer | null>(null);
   const currentTimeRef = useRef(0);
+  // Remembers the zoom we last committed so the zoom effect can compute
+  // where the playhead USED to be on screen before zoom applied. Without
+  // this we can't anchor the zoom around the cursor — we'd only know the
+  // new width.
+  const prevZoomRef = useRef(0);
   const { episode, seek: rawSeek, play, pause } = useEditorPlaybackControls();
   const currentTime = useEditorPlaybackCurrentTime();
   const duration = useEditorPlaybackDuration();
   const isPlaying = useEditorPlaybackIsPlaying();
   const isPlayingRef = useRef(isPlaying);
-  const { markers, canUndo, canRedo, undo, redo, resetAdChecks, moveMarker } =
-    useEditorMarkers();
+  const {
+    markers,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    resetAdChecks,
+    moveMarker,
+    adState,
+  } = useEditorMarkers();
   const seek = useCallback(
     (time: number) => {
       if (time < currentTimeRef.current) {
@@ -436,12 +669,48 @@ export default function WaveformTimeline() {
     };
   }, [episode.id, episode.waveformUrl]);
 
+  const [peaks, setPeaks] = useState<ParsedPeaks | null>(null);
+
+  // Fetch peaks for the ready path; each EpisodeTile slices this array into
+  // its own segment's time range and mounts an independent WaveSurfer.
   useEffect(() => {
-    if (init.kind !== "ready" && init.kind !== "fallback") return;
+    if (init.kind !== "ready") {
+      setPeaks(null);
+      return;
+    }
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const parsed = await fetchPeaks(init.waveformUrl, controller.signal);
+        if (controller.signal.aborted) return;
+        setPeaks(parsed);
+        setReadySourceUrl(episode.sourceUrl);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn(
+          "[Wave] peaks fetch failed, falling back to client decode",
+          error,
+        );
+        setPeaks(null);
+        setInit({ kind: "fallback" });
+      }
+    })();
+    return () => controller.abort();
+  }, [
+    init.kind,
+    init.kind === "ready" ? init.waveformUrl : null,
+    episode.sourceUrl,
+  ]);
+
+  // Fallback path for legacy episodes with no waveformUrl: spin up a single
+  // client-decoded WaveSurfer over the whole container. EpisodeTiles replace
+  // this for the peaks path.
+  useEffect(() => {
+    if (init.kind !== "fallback") return;
     const container = waveContainerRef.current;
     if (!container) return;
 
-    const baseOptions = {
+    const ws = WaveSurfer.create({
       container,
       height: WAVE_HEIGHT,
       waveColor: WAVE_BAR_COLOR,
@@ -458,98 +727,80 @@ export default function WaveformTimeline() {
       autoScroll: true,
       autoCenter: false,
       hideScrollbar: false,
-    };
+      url: episode.sourceUrl,
+      media: document.createElement("audio"),
+    });
 
-    let ws: WaveSurfer | null = null;
-    const controller = new AbortController();
-
-    function attach(instance: WaveSurfer) {
-      instance.on("ready", () => setReadySourceUrl(episode.sourceUrl));
-      instance.on("interaction", (nextTime: number) => seekRef.current(nextTime));
-      wsRef.current = instance;
-    }
-
-    function createWithClientDecode() {
-      return WaveSurfer.create({
-        ...baseOptions,
-        url: episode.sourceUrl,
-        media: document.createElement("audio"),
-      });
-    }
-
-    async function boot() {
-      if (init.kind === "ready") {
-        try {
-          const parsed = await fetchPeaks(init.waveformUrl, controller.signal);
-          if (controller.signal.aborted) return;
-
-          const audio = document.createElement("audio");
-          audio.src = episode.sourceUrl;
-          audio.preload = "metadata";
-
-          ws = WaveSurfer.create({
-            ...baseOptions,
-            peaks: [parsed.peaks],
-            duration: parsed.durationSec,
-            media: audio,
-          });
-        } catch (error) {
-          if (controller.signal.aborted) return;
-          console.warn(
-            "[Wave] peaks fetch failed, falling back to client decode",
-            error,
-          );
-          ws = createWithClientDecode();
-        }
-      } else {
-        ws = createWithClientDecode();
-      }
-
-      if (controller.signal.aborted) {
-        ws.destroy();
-        return;
-      }
-
-      attach(ws);
-    }
-
-    boot();
+    ws.on("ready", () => setReadySourceUrl(episode.sourceUrl));
+    ws.on("interaction", (nextTime: number) => seekRef.current(nextTime));
+    wsRef.current = ws;
 
     return () => {
-      controller.abort();
-      ws?.destroy();
+      ws.destroy();
       wsRef.current = null;
     };
-  }, [
-    episode.sourceUrl,
-    init.kind,
-    init.kind === "ready" ? init.waveformUrl : null,
-  ]);
+  }, [init.kind, episode.sourceUrl]);
 
   const handleZoomChange = useCallback((nextZoom: number) => {
     setZoom(clampZoom(nextZoom));
   }, []);
 
-  // Apply zoom AFTER the DOM has committed the new trackWidth. Otherwise
-  // WaveSurfer computes layout against a stale container width, flags the
-  // waveform as isScrollable, falls into its lazy-render path, and leaves
-  // off-screen chunks blank until its internal ResizeObserver fires ~100ms
-  // later. Running in an effect guarantees a correct single-pass render.
+  // Zoom anchors around the playhead: whatever X the cursor occupied on
+  // screen before the zoom change, it keeps occupying after. If the cursor
+  // was off-screen (or this is the first zoom) we center it so a zoom
+  // gesture never loses the cursor.
+  //
+  // Two render paths share this logic:
+  //   - Segmented (default): each EpisodeTile owns its own WaveSurfer and
+  //     redraws as its parent's pixel width changes — no top-level ws call
+  //     is needed here.
+  //   - Fallback (legacy episodes without a peaks file): a single
+  //     top-level WaveSurfer; we must call ws.zoom() ourselves before
+  //     reading scrollWidth, otherwise we'd read the stale canvas width.
   useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws || zoom <= 0) return;
-
-    ws.zoom(zoom);
+    if (zoom <= 0) return;
 
     const viewport = scrollViewportRef.current;
-    if (!viewport || duration <= 0) return;
+    if (!viewport || duration <= 0) {
+      prevZoomRef.current = zoom;
+      return;
+    }
+
+    const prevZoom = prevZoomRef.current;
+    const currentTimeSec = currentTimeRef.current;
+
+    // Capture the cursor's on-screen X using the OLD layout. viewport
+    // dimensions / scrollLeft at this point still reflect the pre-zoom
+    // state because we compute against OLD values (prevZoom + current
+    // scrollLeft) before any layout work.
+    let targetScreenX: number;
+    if (prevZoom > 0) {
+      const oldTrackWidth = duration * prevZoom;
+      const oldPlayheadX = (currentTimeSec / duration) * oldTrackWidth;
+      const oldScreenX = oldPlayheadX - viewport.scrollLeft;
+      const onScreen = oldScreenX >= 0 && oldScreenX <= viewport.clientWidth;
+      targetScreenX = onScreen ? oldScreenX : viewport.clientWidth / 2;
+    } else {
+      targetScreenX = viewport.clientWidth / 2;
+    }
+
+    // Fallback path: also drive the single top-level WaveSurfer so its
+    // canvas redraws in the same commit as trackWidth expanding. Otherwise
+    // WaveSurfer would flag itself scrollable on its own ResizeObserver
+    // ~100ms later and leave off-screen chunks blank until then.
+    const ws = wsRef.current;
+    if (ws) ws.zoom(zoom);
+
     const track = viewport.firstElementChild as HTMLElement | null;
-    if (!track) return;
+    if (!track) {
+      prevZoomRef.current = zoom;
+      return;
+    }
 
     const tw = track.scrollWidth;
-    const playheadX = (currentTimeRef.current / duration) * tw;
-    const scrollTarget = playheadX - viewport.clientWidth / 2;
-    viewport.scrollLeft = Math.max(0, scrollTarget);
+    const newPlayheadX = (currentTimeSec / duration) * tw;
+    viewport.scrollLeft = Math.max(0, newPlayheadX - targetScreenX);
+    prevZoomRef.current = zoom;
   }, [zoom, duration]);
 
   const handlePlayheadDrag = useCallback(
@@ -687,11 +938,18 @@ export default function WaveformTimeline() {
           <PlayheadOverlay
             displayTime={displayTime}
             duration={duration}
+            segments={segments}
+            adState={adState}
             onPointerDown={handlePlayheadDrag}
           />
 
           <div
-            className="relative z-0 overflow-hidden rounded-dialog border-4 border-black bg-fuchsia-300 shadow-inner"
+            // Outer bg must be black (matching the border) so the small
+            // regions exposed by each tile's rounded corners look like a
+            // continuation of the border, not a pink leak. Ad tiles and
+            // inner episode boundaries have rounded corners; with a pink
+            // bg, those curves expose fuchsia between tiles.
+            className="relative z-0 overflow-hidden rounded-dialog border-4 border-black bg-black shadow-inner"
             style={{
               height: WAVE_HEIGHT,
               marginTop: WAVE_TOP_PADDING,
@@ -700,9 +958,11 @@ export default function WaveformTimeline() {
             <SegmentedTimeline
               duration={duration}
               segments={segments}
+              peaks={peaks}
               draggingMarkerId={draggingMarkerId}
               dragTimeSec={dragTimeSec}
               pendingPosition={pendingPosition}
+              onSeekToGlobalTime={seek}
               onAdPointerDown={handleAdPointerDown}
             />
 
@@ -722,10 +982,15 @@ export default function WaveformTimeline() {
                 </div>
               </div>
             )}
-            <div
-              ref={waveContainerRef}
-              className="relative z-10 h-full w-full"
-            />
+            {/* Fallback: legacy episodes with no waveformUrl get a single
+                WaveSurfer over the full container. EpisodeTiles replace this
+                for the peaks path. */}
+            {init.kind === "fallback" && (
+              <div
+                ref={waveContainerRef}
+                className="relative z-10 h-full w-full"
+              />
+            )}
           </div>
 
           <TimelineTicks duration={duration} ticks={ticks} miniTicks={miniTicks} />

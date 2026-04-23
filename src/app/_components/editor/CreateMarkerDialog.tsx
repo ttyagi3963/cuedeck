@@ -71,7 +71,7 @@ export default function CreateMarkerDialog({
       size={step === DIALOG_STEPS.ADS ? "wide" : "default"}
     >
       {step === DIALOG_STEPS.TYPE && (
-        <>
+        <div className="flex flex-col gap-content-gap-md">
           <fieldset className="flex flex-col gap-content-gap-sm">
             {MARKER_TYPES.map((type) => (
               <MarkerTypeOption
@@ -82,19 +82,18 @@ export default function CreateMarkerDialog({
               />
             ))}
           </fieldset>
-          <div className="flex gap-content-gap-sm">
-            <Button variant="outline" className="flex-1" onClick={handleClose}>
+          {/* Footer style matches the ad-library dialog: Cancel on the
+              left as an outline, primary action on the right with the
+              near-black filled bg. Not equal-width flex-1 buttons. */}
+          <div className="flex items-center justify-between gap-content-gap-sm border-t border-border-default pt-content-gap-sm">
+            <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={handleTypeNext}
-            >
+            <Button variant="primary" onClick={handleTypeNext}>
               {selectedType === "AUTO" ? "Create marker" : "Next"}
             </Button>
           </div>
-        </>
+        </div>
       )}
 
       {step === DIALOG_STEPS.ADS && (

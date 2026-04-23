@@ -7,6 +7,14 @@ import type { Ad } from "@/contracts/ad";
 export interface AdInjectionState {
   isPlayingAd: boolean;
   currentAd: Ad | null;
+  // Seconds of the current ad that have played. Used by the waveform
+  // playhead to animate the cursor smoothly through the ad tile while the
+  // ad is playing, and to freeze it correctly if the ad video is paused.
+  adElapsedSec: number;
+  // Whether the ad <video> is currently paused. Drives the toolbar
+  // play/pause icon so it reflects the state of what's actually visible
+  // on screen (the ad) rather than the frozen main <video> underneath.
+  isAdPaused: boolean;
 }
 
 export interface AdInjectionControls {
@@ -16,6 +24,12 @@ export interface AdInjectionControls {
 
   onAdEnded: () => void;
 
+  onAdTimeUpdate: (currentTime: number) => void;
+
+  onAdPlay: () => void;
+
+  onAdPause: () => void;
+
   reset: (seekTime: number) => void;
 
   markAsPlayed: (markerId: string) => void;
@@ -23,6 +37,17 @@ export interface AdInjectionControls {
   suppress: () => void;
 
   unsuppress: () => void;
+
+  // Registers the AdOverlay's <video> element so the editor can drive
+  // play/pause of the ad video from the top-level toggle button, spacebar
+  // shortcut, or a click on the ad overlay itself.
+  setAdVideo: (el: HTMLVideoElement | null) => void;
+
+  togglePlayPauseAd: () => void;
+
+  pauseAd: () => void;
+
+  playAd: () => void;
 }
 
 function resolveAd(
@@ -60,6 +85,8 @@ export function useAdInjection(
   const [adState, setAdState] = useState<AdInjectionState>({
     isPlayingAd: false,
     currentAd: null,
+    adElapsedSec: 0,
+    isAdPaused: false,
   });
 
   const [playedMarkerIds, setPlayedMarkerIds] = useState<Set<string>>(
@@ -69,6 +96,7 @@ export function useAdInjection(
   const suppressedRef = useRef(false);
   const suppressEndTimeRef = useRef(0);
   const currentMarkerAdIdRef = useRef<string | null>(null);
+  const adVideoRef = useRef<HTMLVideoElement | null>(null);
   const [abPlayCounts, setAbPlayCounts] = useState<Map<string, number>>(
     () => new Map(),
   );
@@ -129,7 +157,12 @@ export function useAdInjection(
           addPlayedMarkerId(marker.id);
           pause();
           resumeRef.current = resume;
-          setAdState({ isPlayingAd: true, currentAd: ad });
+          setAdState({
+            isPlayingAd: true,
+            currentAd: ad,
+            adElapsedSec: 0,
+            isAdPaused: false,
+          });
           return;
         }
       }
@@ -145,6 +178,32 @@ export function useAdInjection(
     ],
   );
 
+  // Called from AdOverlay's <video onTimeUpdate>. Cheap enough to live in
+  // state — drives the playhead cursor through the ad tile in real time.
+  const onAdTimeUpdate = useCallback((currentTime: number) => {
+    setAdState((prev) => {
+      if (!prev.isPlayingAd) return prev;
+      if (prev.adElapsedSec === currentTime) return prev;
+      return { ...prev, adElapsedSec: currentTime };
+    });
+  }, []);
+
+  const onAdPlay = useCallback(() => {
+    setAdState((prev) => {
+      if (!prev.isPlayingAd) return prev;
+      if (!prev.isAdPaused) return prev;
+      return { ...prev, isAdPaused: false };
+    });
+  }, []);
+
+  const onAdPause = useCallback(() => {
+    setAdState((prev) => {
+      if (!prev.isPlayingAd) return prev;
+      if (prev.isAdPaused) return prev;
+      return { ...prev, isAdPaused: true };
+    });
+  }, []);
+
   const onAdEnded = useCallback(() => {
     const markerAdId = currentMarkerAdIdRef.current;
     if (markerAdId) {
@@ -156,7 +215,12 @@ export function useAdInjection(
       currentMarkerAdIdRef.current = null;
     }
 
-    setAdState({ isPlayingAd: false, currentAd: null });
+    setAdState({
+      isPlayingAd: false,
+      currentAd: null,
+      adElapsedSec: 0,
+      isAdPaused: false,
+    });
     resumeRef.current?.();
     resumeRef.current = null;
   }, []);
@@ -173,7 +237,12 @@ export function useAdInjection(
         return keep;
       });
 
-      setAdState({ isPlayingAd: false, currentAd: null });
+      setAdState({
+      isPlayingAd: false,
+      currentAd: null,
+      adElapsedSec: 0,
+      isAdPaused: false,
+    });
       resumeRef.current = null;
       currentMarkerAdIdRef.current = null;
     },
@@ -195,13 +264,48 @@ export function useAdInjection(
     suppressEndTimeRef.current = Date.now() + 1500;
   }, []);
 
+  const setAdVideo = useCallback((el: HTMLVideoElement | null) => {
+    adVideoRef.current = el;
+  }, []);
+
+  const pauseAd = useCallback(() => {
+    const el = adVideoRef.current;
+    if (el && !el.paused) {
+      el.pause();
+    }
+  }, []);
+
+  const playAd = useCallback(() => {
+    const el = adVideoRef.current;
+    if (el && el.paused) {
+      void el.play();
+    }
+  }, []);
+
+  const togglePlayPauseAd = useCallback(() => {
+    const el = adVideoRef.current;
+    if (!el) return;
+    if (el.paused) {
+      void el.play();
+    } else {
+      el.pause();
+    }
+  }, []);
+
   return {
     state: adState,
     check,
     onAdEnded,
+    onAdTimeUpdate,
+    onAdPlay,
+    onAdPause,
     reset,
     markAsPlayed,
     suppress,
     unsuppress,
+    setAdVideo,
+    togglePlayPauseAd,
+    pauseAd,
+    playAd,
   };
 }

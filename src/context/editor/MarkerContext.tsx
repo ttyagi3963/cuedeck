@@ -66,6 +66,13 @@ type MarkerContextValue = {
   redo: () => void;
   adState: AdInjectionState;
   onAdEnded: () => void;
+  onAdTimeUpdate: (currentTime: number) => void;
+  onAdPlay: () => void;
+  onAdPause: () => void;
+  setAdVideo: (el: HTMLVideoElement | null) => void;
+  togglePlayPauseAd: () => void;
+  pauseAd: () => void;
+  playAd: () => void;
   suppressAdChecks: () => void;
   unsuppressAdChecks: () => void;
   resetAdChecks: (seekTime: number) => void;
@@ -131,10 +138,17 @@ export function MarkerProvider({
     state: adState,
     check: adCheck,
     onAdEnded,
+    onAdTimeUpdate,
+    onAdPlay,
+    onAdPause,
     reset: resetAdChecks,
     markAsPlayed,
     suppress: suppressAdChecks,
     unsuppress: unsuppressAdChecks,
+    setAdVideo,
+    togglePlayPauseAd,
+    pauseAd,
+    playAd,
   } = useAdInjection(markers, pause, play);
 
   function getMarkerTarget(markerId: string): MarkerCommandTarget {
@@ -474,6 +488,13 @@ export function MarkerProvider({
           redo,
           adState,
           onAdEnded,
+          onAdTimeUpdate,
+          onAdPlay,
+          onAdPause,
+          setAdVideo,
+          togglePlayPauseAd,
+          pauseAd,
+          playAd,
           suppressAdChecks,
           unsuppressAdChecks,
           resetAdChecks,
