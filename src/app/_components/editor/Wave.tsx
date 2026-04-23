@@ -622,12 +622,24 @@ export default function WaveformTimeline() {
       const el = e.currentTarget as HTMLElement;
       el.setPointerCapture(e.pointerId);
 
+      // Preserve the user's grip point on the tile. Without this, on the
+      // first pointermove the tile snaps so the pointer aligns with the
+      // tile's START time, causing a visible "judder to the right" any time
+      // the user grabs anywhere other than the tile's exact left edge.
+      const tileRect = el.getBoundingClientRect();
+      const grabOffsetPx = e.clientX - tileRect.left;
+
       let latestTime = timeSec;
 
       const onMove = (pe: PointerEvent) => {
         const rect = track.getBoundingClientRect();
-        const x = Math.max(0, Math.min(pe.clientX - rect.left, rect.width));
-        latestTime = Math.max(0, Math.min((x / rect.width) * duration, duration));
+        // Where the tile's left edge should be, preserving the grab offset.
+        const tileLeftXInTrack = pe.clientX - rect.left - grabOffsetPx;
+        const clamped = Math.max(0, Math.min(tileLeftXInTrack, rect.width));
+        latestTime = Math.max(
+          0,
+          Math.min((clamped / rect.width) * duration, duration),
+        );
         setDragTimeSec(latestTime);
       };
 
