@@ -12,7 +12,6 @@
     "test": "vitest",
     "test:run": "vitest run",
     "seed": "npx tsx prisma/seed.ts",
-    "backfill:waveforms": "npx tsx scripts/backfill-waveforms.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

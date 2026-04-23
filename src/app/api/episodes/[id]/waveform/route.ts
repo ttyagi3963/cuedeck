@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { episodeService, jobService, storageService } from "@/lib/container";
+import {
+  episodeService,
+  jobService,
+  storageService,
+  waveformService,
+} from "@/lib/container";
 import { toErrorResponse } from "@/app/api/_lib/errors";
 import {
   waveformStatusResponseSchema,
@@ -73,5 +78,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json(waveformStatusResponseSchema.parse(body));
   } catch (error) {
     return toErrorResponse(error, "Failed to read waveform status");
+  }
+}
+
+export async function POST(_request: Request, { params }: RouteParams) {
+  const { id } = await params;
+
+  try {
+    await waveformService.start(id);
+    return new NextResponse(null, { status: 202 });
+  } catch (error) {
+    return toErrorResponse(error, "Failed to start waveform generation");
   }
 }
