@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import type { Marker } from "@/contracts/marker";
+import type { AdInjectionState } from "@/hooks/useAdInjection";
 import {
   useEditorMarkers,
   useEditorPlaybackControls,
@@ -25,6 +26,7 @@ import { formatTimestamp } from "@/utils/time";
 import {
   clampZoom,
   computeSegments,
+  cursorPctFromEpisodeTime,
   generateTicks,
   generateMiniTicks,
   type Segment,
@@ -43,6 +45,8 @@ import WaveformToolbar from "./WaveformToolbar";
 type PlayheadOverlayProps = {
   displayTime: number;
   duration: number;
+  segments: Segment[];
+  adState: AdInjectionState;
   onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 };
 
@@ -203,19 +207,36 @@ const AdTile = memo(function AdTile({
 }: AdTileProps) {
   const meta = MARKER_TYPE_META[marker.type];
   const styles = AD_TILE_STYLES[marker.type];
-  const firstAd = marker.markerAds[0]?.ad;
+  // Only show a concrete thumbnail when the marker has a single ad —
+  // then the user knows exactly which ad will play. For AUTO (random)
+  // and AB (test) markers with multiple ads, `resolveAd` picks at
+  // playback time, so pinning one thumbnail would mislead: the played
+  // ad wouldn't match the picture on the tile.
+  const isSingleAd = marker.markerAds.length === 1;
+  const displayedAd = isSingleAd ? marker.markerAds[0].ad : null;
   const stableVideoUrl = useMemo(
-    () => firstAd?.videoUrl,
+    () => displayedAd?.videoUrl,
     // Deliberately key on ad.id — we want to lock the URL we first saw for
     // this ad and ignore later resignings of the same content.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [firstAd?.id],
+    [displayedAd?.id],
   );
+  const adCount = marker.markerAds.length;
 
   return (
     <div
-      className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 border-black ${meta.waveformRegionClass} ${isDragging ? "cursor-grabbing opacity-90 shadow-lg" : "cursor-grab"}`}
-      style={{ left: leftStyle, width: widthStyle, minWidth: 8 }}
+      // Ad tiles must always paint ABOVE adjacent episode tiles — when the
+      // user drags an ad past a neighbor, the waveform tile should slide
+      // under the ad, not over it. Sibling DOM order isn't reliable here
+      // because the dragged ad can pass both earlier and later episode
+      // tiles. While dragging, bump even higher so the moving ad also
+      // floats above any static ad it momentarily overlaps.
+      className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 border-black ${meta.waveformRegionClass} ${isDragging ? "z-30 cursor-grabbing opacity-90 shadow-lg" : "z-20 cursor-grab"}`}
+      // Width comes straight from duration ratio — no minWidth clamp — so the
+      // ad tile occupies exactly its share of the timeline. At narrow widths
+      // the thumbnail/label collapse to the visible band; zooming in expands
+      // the tile enough to show the full inner layout.
+      style={{ left: leftStyle, width: widthStyle }}
       onPointerDown={onPointerDown}
     >
       {/* Label pill at top */}
@@ -227,23 +248,35 @@ const AdTile = memo(function AdTile({
         </span>
       </div>
 
-      {/* Small centered thumbnail + title in the middle */}
-      {stableVideoUrl && (
-        <div className="pointer-events-none absolute inset-x-1 top-6 bottom-7 flex flex-col items-center justify-center gap-0.5 overflow-hidden">
+      {/* Single-ad markers show the concrete thumbnail edge-to-edge so
+          the user knows exactly what will play. Multi-ad markers
+          (AUTO/AB) instead show a count badge — which ad plays is
+          decided at playback time by resolveAd, so a thumbnail here
+          would be a lie. */}
+      {stableVideoUrl ? (
+        <>
           <video
             src={stableVideoUrl}
             preload="metadata"
             muted
-            className="max-h-full w-full rounded object-cover"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           />
-          {firstAd?.title && (
+          {displayedAd?.title && (
             <span
-              className={`line-clamp-1 max-w-full text-[7px] font-medium leading-tight text-center ${styles.title}`}
+              className={`pointer-events-none absolute inset-x-1 bottom-6 line-clamp-1 text-[7px] font-medium leading-tight text-center ${styles.title}`}
             >
-              {firstAd.title}
+              {displayedAd.title}
             </span>
           )}
-        </div>
+        </>
+      ) : (
+        // Multi-ad: show the count so the user can see at a glance
+        // that this slot rotates between N ads.
+        <span
+          className={`pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 text-center text-[9px] font-semibold leading-tight ${styles.title}`}
+        >
+          {adCount} ads
+        </span>
       )}
 
       {/* Grip pill at bottom */}
@@ -279,12 +312,14 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
         const isLast = i === segments.length - 1;
 
         if (seg.kind === "episode") {
-          const leftStyle = `calc(${seg.startPct}% + ${isFirst ? 0 : HALF_GAP_PX}px)`;
-          const widthStyle = `calc(${seg.widthPct}% - ${(isFirst ? 0 : HALF_GAP_PX) + (isLast ? 0 : HALF_GAP_PX)}px)`;
+          // Position tiles exactly by their time share — no gap math. The
+          // 2 px black border on each tile provides visual separation where
+          // adjacent tiles meet; physical gaps would shrink the visible
+          // width below the tile's actual duration.
+          const leftStyle = `${seg.startPct}%`;
+          const widthStyle = `${seg.widthPct}%`;
 
           if (!peaks) {
-            // No peaks yet (pending / fallback). Render a placeholder tile so
-            // the outline of the segment is still visible.
             return (
               <div
                 key={`ep-${i}`}
@@ -329,8 +364,8 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
             key={marker.id}
             marker={marker}
             isDragging={isDragging}
-            leftStyle={`calc(${effectiveStartPct}% + ${HALF_GAP_PX}px)`}
-            widthStyle={`calc(${seg.widthPct}% - ${SEGMENT_GAP_PX}px)`}
+            leftStyle={`${effectiveStartPct}%`}
+            widthStyle={`${seg.widthPct}%`}
             onPointerDown={(e) => {
               e.stopPropagation();
               onAdPointerDown(marker.id, marker.timeSec, e);
@@ -345,14 +380,44 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
 const PlayheadOverlay = memo(function PlayheadOverlay({
   displayTime,
   duration,
+  segments,
+  adState,
   onPointerDown,
 }: PlayheadOverlayProps) {
   if (duration <= 0) {
     return null;
   }
 
-  const progress = Math.max(0, Math.min(displayTime / duration, 1));
-  const left = `${progress * 100}%`;
+  // Cursor mapping:
+  // - While an ad is playing, the cursor moves linearly across the ad tile
+  //   tracking the ad video's elapsed time (adElapsedSec / ad.duration).
+  //   When the <video> is paused, onTimeUpdate stops firing so the cursor
+  //   naturally freezes in place — matching the intuition that "pause
+  //   pauses everything, including the ad, so the cursor stops too".
+  // - Otherwise, the cursor follows episode time with segment-aware
+  //   mapping so it never advances INTO an ad tile while the episode is
+  //   actually playing.
+  let progressPct: number;
+  if (adState.isPlayingAd && adState.currentAd) {
+    const currentAdId = adState.currentAd.id;
+    const adSeg = segments.find(
+      (seg) =>
+        seg.kind === "ad" &&
+        seg.marker.markerAds.some((ma) => ma.ad.id === currentAdId),
+    );
+    if (adSeg && adState.currentAd.duration > 0) {
+      const local = Math.max(
+        0,
+        Math.min(1, adState.adElapsedSec / adState.currentAd.duration),
+      );
+      progressPct = adSeg.startPct + local * adSeg.widthPct;
+    } else {
+      progressPct = cursorPctFromEpisodeTime(displayTime, segments);
+    }
+  } else {
+    progressPct = cursorPctFromEpisodeTime(displayTime, segments);
+  }
+  const left = `${progressPct}%`;
   const handleLeft = `clamp(${PLAYHEAD_EDGE_SAFE_INSET_PX - 5}px, calc(${left} - ${PLAYHEAD_HANDLE_HALF_WIDTH_PX}px), calc(100% - ${PLAYHEAD_HANDLE_WIDTH_PX + PLAYHEAD_EDGE_SAFE_INSET_PX}px))`;
   const lineLeft = `clamp(${PLAYHEAD_EDGE_SAFE_INSET_PX + 2}px, ${left}, calc(100% - ${PLAYHEAD_EDGE_SAFE_INSET_PX}px))`;
 
@@ -427,13 +492,26 @@ export default function WaveformTimeline() {
   const waveContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WaveSurfer | null>(null);
   const currentTimeRef = useRef(0);
+  // Remembers the zoom we last committed so the zoom effect can compute
+  // where the playhead USED to be on screen before zoom applied. Without
+  // this we can't anchor the zoom around the cursor — we'd only know the
+  // new width.
+  const prevZoomRef = useRef(0);
   const { episode, seek: rawSeek, play, pause } = useEditorPlaybackControls();
   const currentTime = useEditorPlaybackCurrentTime();
   const duration = useEditorPlaybackDuration();
   const isPlaying = useEditorPlaybackIsPlaying();
   const isPlayingRef = useRef(isPlaying);
-  const { markers, canUndo, canRedo, undo, redo, resetAdChecks, moveMarker } =
-    useEditorMarkers();
+  const {
+    markers,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    resetAdChecks,
+    moveMarker,
+    adState,
+  } = useEditorMarkers();
   const seek = useCallback(
     (time: number) => {
       if (time < currentTimeRef.current) {
@@ -667,26 +745,62 @@ export default function WaveformTimeline() {
     setZoom(clampZoom(nextZoom));
   }, []);
 
-  // Apply zoom AFTER the DOM has committed the new trackWidth. Otherwise
-  // WaveSurfer computes layout against a stale container width, flags the
-  // waveform as isScrollable, falls into its lazy-render path, and leaves
-  // off-screen chunks blank until its internal ResizeObserver fires ~100ms
-  // later. Running in an effect guarantees a correct single-pass render.
+  // Zoom anchors around the playhead: whatever X the cursor occupied on
+  // screen before the zoom change, it keeps occupying after. If the cursor
+  // was off-screen (or this is the first zoom) we center it so a zoom
+  // gesture never loses the cursor.
+  //
+  // Two render paths share this logic:
+  //   - Segmented (default): each EpisodeTile owns its own WaveSurfer and
+  //     redraws as its parent's pixel width changes — no top-level ws call
+  //     is needed here.
+  //   - Fallback (legacy episodes without a peaks file): a single
+  //     top-level WaveSurfer; we must call ws.zoom() ourselves before
+  //     reading scrollWidth, otherwise we'd read the stale canvas width.
   useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws || zoom <= 0) return;
-
-    ws.zoom(zoom);
+    if (zoom <= 0) return;
 
     const viewport = scrollViewportRef.current;
-    if (!viewport || duration <= 0) return;
+    if (!viewport || duration <= 0) {
+      prevZoomRef.current = zoom;
+      return;
+    }
+
+    const prevZoom = prevZoomRef.current;
+    const currentTimeSec = currentTimeRef.current;
+
+    // Capture the cursor's on-screen X using the OLD layout. viewport
+    // dimensions / scrollLeft at this point still reflect the pre-zoom
+    // state because we compute against OLD values (prevZoom + current
+    // scrollLeft) before any layout work.
+    let targetScreenX: number;
+    if (prevZoom > 0) {
+      const oldTrackWidth = duration * prevZoom;
+      const oldPlayheadX = (currentTimeSec / duration) * oldTrackWidth;
+      const oldScreenX = oldPlayheadX - viewport.scrollLeft;
+      const onScreen = oldScreenX >= 0 && oldScreenX <= viewport.clientWidth;
+      targetScreenX = onScreen ? oldScreenX : viewport.clientWidth / 2;
+    } else {
+      targetScreenX = viewport.clientWidth / 2;
+    }
+
+    // Fallback path: also drive the single top-level WaveSurfer so its
+    // canvas redraws in the same commit as trackWidth expanding. Otherwise
+    // WaveSurfer would flag itself scrollable on its own ResizeObserver
+    // ~100ms later and leave off-screen chunks blank until then.
+    const ws = wsRef.current;
+    if (ws) ws.zoom(zoom);
+
     const track = viewport.firstElementChild as HTMLElement | null;
-    if (!track) return;
+    if (!track) {
+      prevZoomRef.current = zoom;
+      return;
+    }
 
     const tw = track.scrollWidth;
-    const playheadX = (currentTimeRef.current / duration) * tw;
-    const scrollTarget = playheadX - viewport.clientWidth / 2;
-    viewport.scrollLeft = Math.max(0, scrollTarget);
+    const newPlayheadX = (currentTimeSec / duration) * tw;
+    viewport.scrollLeft = Math.max(0, newPlayheadX - targetScreenX);
+    prevZoomRef.current = zoom;
   }, [zoom, duration]);
 
   const handlePlayheadDrag = useCallback(
@@ -824,11 +938,18 @@ export default function WaveformTimeline() {
           <PlayheadOverlay
             displayTime={displayTime}
             duration={duration}
+            segments={segments}
+            adState={adState}
             onPointerDown={handlePlayheadDrag}
           />
 
           <div
-            className="relative z-0 overflow-hidden rounded-dialog border-4 border-black bg-fuchsia-300 shadow-inner"
+            // Outer bg must be black (matching the border) so the small
+            // regions exposed by each tile's rounded corners look like a
+            // continuation of the border, not a pink leak. Ad tiles and
+            // inner episode boundaries have rounded corners; with a pink
+            // bg, those curves expose fuchsia between tiles.
+            className="relative z-0 overflow-hidden rounded-dialog border-4 border-black bg-black shadow-inner"
             style={{
               height: WAVE_HEIGHT,
               marginTop: WAVE_TOP_PADDING,

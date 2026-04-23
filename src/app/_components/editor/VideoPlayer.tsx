@@ -16,6 +16,7 @@ export default function VideoPlayer() {
     toggle,
     adState,
     onAdEnded,
+    onAdTimeUpdate,
     markers,
     moveMarker,
     isMuted,
@@ -37,7 +38,11 @@ export default function VideoPlayer() {
   return (
     <div className="group/video relative aspect-video w-full overflow-hidden rounded-dialog bg-video-bg">
       {adState.isPlayingAd && adState.currentAd && (
-        <AdOverlay ad={adState.currentAd} onEnded={onAdEnded} />
+        <AdOverlay
+          ad={adState.currentAd}
+          onEnded={onAdEnded}
+          onTimeUpdate={onAdTimeUpdate}
+        />
       )}
 
       {!playback.isReady && !adState.isPlayingAd && (

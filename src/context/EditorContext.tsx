@@ -61,6 +61,10 @@ type EditorContextValue = {
   redo: () => void;
   adState: AdInjectionState;
   onAdEnded: () => void;
+  onAdTimeUpdate: (currentTime: number) => void;
+  onAdPlay: () => void;
+  onAdPause: () => void;
+  setAdVideo: (el: HTMLVideoElement | null) => void;
   suppressAdChecks: () => void;
   unsuppressAdChecks: () => void;
 };
@@ -72,7 +76,10 @@ type EditorProviderProps = {
 };
 
 function EditorHotkeys({ children }: { children: ReactNode }) {
-  const { toggle } = useEditorPlaybackControls();
+  // Use the ad-aware toggle from useEditor so spacebar pauses the ad video
+  // while an ad is playing, instead of no-oping on the already-paused main
+  // video underneath.
+  const { toggle } = useEditor();
   const { undo, redo } = useEditorMarkers();
 
   useKeyboardShortcuts({
@@ -105,9 +112,9 @@ export function useEditor(): EditorContextValue {
     episode,
     videoRef,
     isMuted,
-    play,
-    pause,
-    toggle,
+    play: rawPlay,
+    pause: rawPause,
+    toggle: rawToggle,
     toggleMute,
     seek: rawSeek,
     skip,
@@ -135,6 +142,13 @@ export function useEditor(): EditorContextValue {
     redo,
     adState,
     onAdEnded,
+    onAdTimeUpdate,
+    onAdPlay,
+    onAdPause,
+    setAdVideo,
+    togglePlayPauseAd,
+    pauseAd,
+    playAd,
     suppressAdChecks,
     unsuppressAdChecks,
     resetAdChecks,
@@ -154,10 +168,17 @@ export function useEditor(): EditorContextValue {
     openEditDialog,
     closeEditDialog,
   } = useEditorUI();
+  // While an ad is playing, the main <video>'s `isPlaying` is always
+  // false (we force-paused it to let the ad run). Derive the effective
+  // isPlaying from the ad's paused state so the toolbar play/pause icon
+  // reflects what's visible on screen.
+  const effectiveIsPlaying = adState.isPlayingAd
+    ? !adState.isAdPaused
+    : isPlaying;
   const playback = {
     currentTime,
     duration,
-    isPlaying,
+    isPlaying: effectiveIsPlaying,
     isReady,
   };
 
@@ -166,6 +187,35 @@ export function useEditor(): EditorContextValue {
       resetAdChecks(time);
     }
     rawSeek(time);
+  }
+
+  // While an ad is playing, the main <video> is intentionally paused —
+  // hitting the toolbar Play/Pause or the spacebar would otherwise resume
+  // the episode underneath the ad, or no-op on an already-paused element.
+  // Route these controls to the ad <video> instead so the user's intent
+  // ("pause the thing I'm watching right now") works during ad playback.
+  function toggle() {
+    if (adState.isPlayingAd) {
+      togglePlayPauseAd();
+      return;
+    }
+    rawToggle();
+  }
+
+  function play() {
+    if (adState.isPlayingAd) {
+      playAd();
+      return;
+    }
+    rawPlay();
+  }
+
+  function pause() {
+    if (adState.isPlayingAd) {
+      pauseAd();
+      return;
+    }
+    rawPause();
   }
 
   function jumpToStart() {
@@ -225,6 +275,10 @@ export function useEditor(): EditorContextValue {
     redo,
     adState,
     onAdEnded,
+    onAdTimeUpdate,
+    onAdPlay,
+    onAdPause,
+    setAdVideo,
     suppressAdChecks,
     unsuppressAdChecks,
   };
