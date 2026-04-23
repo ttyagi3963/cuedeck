@@ -46,7 +46,10 @@ afterAll(async () => {
 describe("parsePeaksBuffer", () => {
   it("round-trips a server-generated buffer", async () => {
     const result = await generatePeaks(testWavPath);
-    const arrayBuffer = result.buffer.buffer.slice(
+    // Node's Buffer.buffer can be typed as ArrayBuffer | SharedArrayBuffer.
+    // generatePeaks produces a plain ArrayBuffer-backed Buffer; assert for tsc.
+    const underlying = result.buffer.buffer as ArrayBuffer;
+    const arrayBuffer = underlying.slice(
       result.buffer.byteOffset,
       result.buffer.byteOffset + result.buffer.byteLength,
     );
