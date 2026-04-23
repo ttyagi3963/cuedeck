@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { getFfmpegBinaryPath } from "@/lib/pipeline/ffmpeg";
+import { InfrastructureError } from "@/lib/errors/InfrastructureError";
 import {
   PEAKS_HEADER_BYTES,
   PEAKS_MAGIC,
@@ -90,8 +91,9 @@ export async function generatePeaks(
     ffmpeg.on("close", (code) => resolve(code ?? 0)),
   );
   if (exitCode !== 0) {
-    throw new Error(
-      `ffmpeg exited with code ${exitCode} for ${inputPath}\n${stderr}`,
+    throw new InfrastructureError(
+      `ffmpeg exited with code ${exitCode} for ${inputPath}`,
+      "PEAKS_FFMPEG_FAILED",
     );
   }
 

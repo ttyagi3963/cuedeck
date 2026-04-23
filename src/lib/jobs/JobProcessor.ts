@@ -18,7 +18,7 @@ import type { IStorageService } from "@/services/storage/IStorageService";
 import type { IVideoProcessor } from "@/services/video/IVideoProcessor";
 import type { ITranscriptionProvider } from "@/services/transcription/ITranscriptionProvider";
 import type { IEpisodeRepository } from "@/repositories/episode/IEpisodeRepository";
-import { generatePeaks } from "@/lib/audio/peaks";
+import type { IAudioPeaksProcessor } from "@/services/audio/IAudioPeaksProcessor";
 import { InfrastructureError } from "../errors/InfrastructureError";
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 10_000;
@@ -32,6 +32,7 @@ export class JobProcessor {
     private readonly videoProcessor: IVideoProcessor,
     private readonly transcriptionProvider: ITranscriptionProvider,
     private readonly episodeRepository: IEpisodeRepository,
+    private readonly audioPeaksProcessor: IAudioPeaksProcessor,
     private readonly heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
   ) {}
 
@@ -209,7 +210,7 @@ export class JobProcessor {
       const localPath = await this.storageService.provideLocalCopy(payload.sourceUrl);
       await this.jobService.update(jobId, { progress: 25 });
 
-      const peaks = await generatePeaks(localPath);
+      const peaks = await this.audioPeaksProcessor.generatePeaks(localPath);
       await this.jobService.update(jobId, { progress: 70 });
 
       const stored = await this.storageService.save({

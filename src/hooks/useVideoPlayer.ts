@@ -100,7 +100,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     if (!video) return;
 
     if (video.paused) {
-      void video.play();
+      // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
     } else {
       video.pause();
     }
@@ -109,7 +111,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
   const play = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    void video.play();
+    // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
   }, []);
 
   const pause = useCallback(() => {
@@ -138,7 +142,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
     }));
 
     if (shouldResume) {
-      void video.play();
+      // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
     }
   }, []);
 
@@ -186,7 +192,9 @@ export function useVideoPlayer(src: string): VideoPlayerControls {
         );
 
         if (pendingRestore.shouldResume) {
-          void video.play();
+          // Ignore the AbortError that browsers throw when a subsequent seek or
+    // pause interrupts an in-flight play(). It's benign here.
+    video.play().catch(() => undefined);
         }
         markReady();
         return;
