@@ -5,7 +5,11 @@ import path from "node:path";
 import os from "node:os";
 import { generatePeaks } from "@/lib/audio/peaks";
 import { getFfmpegBinaryPath } from "@/lib/pipeline/ffmpeg";
-import { parsePeaksBuffer } from "@/utils/waveformPeaks";
+import {
+  parsePeaksBuffer,
+  slicePeaks,
+  type ParsedPeaks,
+} from "@/utils/waveformPeaks";
 import { PEAKS_HEADER_BYTES, PEAKS_MAGIC } from "@/contracts/waveform";
 
 let tmpDir: string;
@@ -91,5 +95,67 @@ describe("parsePeaksBuffer", () => {
     view.setUint32(8, 1000, true);
     view.setUint32(12, 999, true); // lie about peak count
     expect(() => parsePeaksBuffer(buf)).toThrow(/length mismatch/);
+  });
+});
+
+describe("slicePeaks", () => {
+  function makePeaks(peaks: number[], durationSec: number): ParsedPeaks {
+    const float = new Float32Array(peaks);
+    return { peaks: float, durationSec, peakCount: float.length };
+  }
+
+  it("returns the full array when the range covers the entire duration", () => {
+    // Integer values — Float32Array represents integers exactly, no precision
+    // drift. Fractional values would need toBeCloseTo per element.
+    const p = makePeaks([1, 2, 3, 4], 4);
+    const slice = slicePeaks(p, 0, 4);
+    expect(Array.from(slice)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("returns the first half for [0, duration/2]", () => {
+    const p = makePeaks([1, 2, 3, 4, 5, 6, 7, 8], 8);
+    const slice = slicePeaks(p, 0, 4);
+    expect(Array.from(slice)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("returns the trailing portion for a mid-range window", () => {
+    const p = makePeaks([1, 2, 3, 4, 5, 6, 7, 8], 8);
+    const slice = slicePeaks(p, 4, 8);
+    expect(Array.from(slice)).toEqual([5, 6, 7, 8]);
+  });
+
+  it("clamps out-of-range endSec to the array end", () => {
+    const p = makePeaks([1, 2, 3, 4], 4);
+    const slice = slicePeaks(p, 2, 999);
+    expect(Array.from(slice)).toEqual([3, 4]);
+  });
+
+  it("clamps negative startSec to the array start", () => {
+    const p = makePeaks([1, 2, 3, 4], 4);
+    const slice = slicePeaks(p, -10, 2);
+    expect(Array.from(slice)).toEqual([1, 2]);
+  });
+
+  it("returns an empty array for a zero-length range", () => {
+    const p = makePeaks([1, 2, 3, 4], 4);
+    expect(slicePeaks(p, 2, 2).length).toBe(0);
+  });
+
+  it("returns an empty array for an inverted range", () => {
+    const p = makePeaks([1, 2, 3, 4], 4);
+    expect(slicePeaks(p, 3, 1).length).toBe(0);
+  });
+
+  it("returns an empty array when the source has zero duration", () => {
+    const p = makePeaks([1, 2, 3, 4], 0);
+    expect(slicePeaks(p, 0, 10).length).toBe(0);
+  });
+
+  it("handles non-integer index boundaries with floor(start) and ceil(end)", () => {
+    // 10 peaks over 10 seconds: 1 peak per second
+    // Range [2.5, 5.5] → start floor = 2, end ceil = 6 → peaks[2..6]
+    const p = makePeaks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 10);
+    const slice = slicePeaks(p, 2.5, 5.5);
+    expect(Array.from(slice)).toEqual([3, 4, 5, 6]);
   });
 });

@@ -15,7 +15,7 @@ export const MARKER_TYPE_META: Record<
 > = {
   AUTO: {
     label: "Auto",
-    shortLabel: "Auto",
+    shortLabel: "A",
     description: "Automatic ad insertions",
     badgeClass: "bg-badge-auto-bg text-badge-auto-text",
     waveformLineClass: "bg-badge-auto-text",
@@ -23,7 +23,7 @@ export const MARKER_TYPE_META: Record<
   },
   STATIC: {
     label: "Static",
-    shortLabel: "Static",
+    shortLabel: "S",
     description: "A marker for a specific ad that you select",
     badgeClass: "bg-badge-static-bg text-badge-static-text",
     waveformLineClass: "bg-badge-static-text",

@@ -29,7 +29,12 @@ import {
   generateMiniTicks,
   type Segment,
 } from "@/utils/waveutils";
-import { fetchPeaks, fetchWaveformStatus } from "@/utils/waveformPeaks";
+import {
+  fetchPeaks,
+  fetchWaveformStatus,
+  slicePeaks,
+  type ParsedPeaks,
+} from "@/utils/waveformPeaks";
 import { GripDots } from "@/app/_components/ui/icons";
 import Spinner from "@/app/_components/ui/Spinner";
 import { MARKER_TYPE_META } from "./markerUi";
@@ -56,9 +61,11 @@ const HALF_GAP_PX = SEGMENT_GAP_PX / 2;
 type SegmentedTimelineProps = {
   duration: number;
   segments: Segment[];
+  peaks: ParsedPeaks | null;
   draggingMarkerId: string | null;
   dragTimeSec: number;
   pendingPosition: { markerId: string; timeSec: number } | null;
+  onSeekToGlobalTime: (time: number) => void;
   onAdPointerDown: (
     markerId: string,
     timeSec: number,
@@ -74,10 +81,119 @@ type AdTileProps = {
   onPointerDown: (e: React.PointerEvent) => void;
 };
 
+type EpisodeTileProps = {
+  peaks: ParsedPeaks;
+  tileStartSec: number;
+  tileDurationSec: number;
+  leftStyle: string;
+  widthStyle: string;
+  isFirst: boolean;
+  isLast: boolean;
+  onSeekToGlobalTime: (time: number) => void;
+};
+
+// Per-segment waveform tile: slices the parsed peaks to its own time range
+// and mounts an independent WaveSurfer. Having one tile per episode segment
+// (instead of a single canvas under the whole track) makes the ad markers
+// actually BREAK the waveform visually — they sit between distinct episode
+// tiles, each with its own rounded corners + border, so the timeline reads
+// as "video segments" rather than "ad overlays on a continuous strip".
+const EpisodeTile = memo(function EpisodeTile({
+  peaks,
+  tileStartSec,
+  tileDurationSec,
+  leftStyle,
+  widthStyle,
+  isFirst,
+  isLast,
+  onSeekToGlobalTime,
+}: EpisodeTileProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onSeekRef = useRef(onSeekToGlobalTime);
+  useEffect(() => {
+    onSeekRef.current = onSeekToGlobalTime;
+  }, [onSeekToGlobalTime]);
+
+  const slicedPeaks = useMemo(
+    () => slicePeaks(peaks, tileStartSec, tileStartSec + tileDurationSec),
+    [peaks, tileStartSec, tileDurationSec],
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || tileDurationSec <= 0) return;
+
+    const ws = WaveSurfer.create({
+      container,
+      height: WAVE_HEIGHT,
+      waveColor: WAVE_BAR_COLOR,
+      progressColor: WAVE_BAR_COLOR,
+      cursorColor: "transparent",
+      cursorWidth: 0,
+      barWidth: WAVE_BAR_WIDTH,
+      barGap: WAVE_BAR_GAP,
+      barRadius: WAVE_BAR_RADIUS,
+      barAlign: "bottom" as const,
+      normalize: true,
+      interact: true,
+      peaks: [slicedPeaks],
+      duration: tileDurationSec,
+      media: document.createElement("audio"),
+    });
+
+    ws.on("interaction", (localTime: number) => {
+      onSeekRef.current(tileStartSec + localTime);
+    });
+
+    return () => {
+      ws.destroy();
+    };
+  }, [slicedPeaks, tileDurationSec, tileStartSec]);
+
+  const roundedLeft = isFirst ? "rounded-l-lg" : "rounded-l";
+  const roundedRight = isLast ? "rounded-r-lg" : "rounded-r";
+
+  return (
+    <div
+      className={`pointer-events-auto absolute inset-y-0 overflow-hidden border-2 border-black bg-fuchsia-300 ${roundedLeft} ${roundedRight}`}
+      style={{ left: leftStyle, width: widthStyle }}
+    >
+      <div ref={containerRef} className="relative h-full w-full" />
+    </div>
+  );
+});
+
 // Pinning the thumbnail URL to the first one we see for a given ad.id keeps
 // <video src> stable across marker-query refetches. Without this, every
 // invalidation after moveMarker returns fresh signed R2 URLs, which React
 // sees as a new src and reloads every ad thumbnail's video element.
+// Per-marker-type styling for the inner elements of an ad tile:
+// - label pill at top uses a lighter shade so it reads on the tile bg
+// - grip pill at bottom uses a darker shade for affordance
+// - thumbnail title text uses the dark theme text color
+// Tailwind needs these class strings present verbatim at build time, so they
+// can't be templated dynamically — hard-coded per type.
+const AD_TILE_STYLES: Record<
+  Marker["type"],
+  { label: string; grip: string; title: string }
+> = {
+  AUTO: {
+    label: "bg-green-100 border border-green-900 text-green-900",
+    grip: "bg-green-400 text-green-900",
+    title: "text-green-900",
+  },
+  STATIC: {
+    label: "bg-blue-100 border border-blue-900 text-blue-900",
+    grip: "bg-blue-400 text-blue-900",
+    title: "text-blue-900",
+  },
+  AB: {
+    label: "bg-orange-100 border border-orange-900 text-orange-900",
+    grip: "bg-orange-400 text-orange-900",
+    title: "text-orange-900",
+  },
+};
+
 const AdTile = memo(function AdTile({
   marker,
   isDragging,
@@ -86,6 +202,7 @@ const AdTile = memo(function AdTile({
   onPointerDown,
 }: AdTileProps) {
   const meta = MARKER_TYPE_META[marker.type];
+  const styles = AD_TILE_STYLES[marker.type];
   const firstAd = marker.markerAds[0]?.ad;
   const stableVideoUrl = useMemo(
     () => firstAd?.videoUrl,
@@ -97,27 +214,45 @@ const AdTile = memo(function AdTile({
 
   return (
     <div
-      className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 ${meta.waveformLineClass.replace("bg-", "border-")} ${meta.waveformRegionClass} ${isDragging ? "cursor-grabbing opacity-90 shadow-lg" : "cursor-grab"}`}
+      className={`pointer-events-auto absolute inset-y-0 overflow-hidden rounded-lg border-2 border-black ${meta.waveformRegionClass} ${isDragging ? "cursor-grabbing opacity-90 shadow-lg" : "cursor-grab"}`}
       style={{ left: leftStyle, width: widthStyle, minWidth: 8 }}
       onPointerDown={onPointerDown}
     >
-      {stableVideoUrl && (
-        <video
-          src={stableVideoUrl}
-          preload="metadata"
-          muted
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40"
-        />
-      )}
-
-      <div className="absolute inset-x-0 bottom-1 flex justify-center">
-        <GripDots className="size-4 text-current opacity-60" />
-      </div>
-
-      <div className="absolute inset-x-0 top-1 flex justify-center">
-        <span className={`rounded px-1 py-0.5 text-[9px] font-bold leading-none ${meta.badgeClass}`}>
+      {/* Label pill at top */}
+      <div className="pointer-events-none absolute inset-x-0 top-1 flex justify-center">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${styles.label}`}
+        >
           {meta.shortLabel}
         </span>
+      </div>
+
+      {/* Small centered thumbnail + title in the middle */}
+      {stableVideoUrl && (
+        <div className="pointer-events-none absolute inset-x-1 top-6 bottom-7 flex flex-col items-center justify-center gap-0.5 overflow-hidden">
+          <video
+            src={stableVideoUrl}
+            preload="metadata"
+            muted
+            className="max-h-full w-full rounded object-cover"
+          />
+          {firstAd?.title && (
+            <span
+              className={`line-clamp-1 max-w-full text-[7px] font-medium leading-tight text-center ${styles.title}`}
+            >
+              {firstAd.title}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Grip pill at bottom */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center">
+        <div
+          className={`inline-flex items-center justify-center rounded px-1 py-0.5 ${styles.grip}`}
+        >
+          <GripDots className="size-3" />
+        </div>
       </div>
     </div>
   );
@@ -126,9 +261,11 @@ const AdTile = memo(function AdTile({
 const SegmentedTimeline = memo(function SegmentedTimeline({
   duration,
   segments,
+  peaks,
   draggingMarkerId,
   dragTimeSec,
   pendingPosition,
+  onSeekToGlobalTime,
   onAdPointerDown,
 }: SegmentedTimelineProps) {
   if (duration <= 0 || segments.length === 0) {
@@ -142,17 +279,35 @@ const SegmentedTimeline = memo(function SegmentedTimeline({
         const isLast = i === segments.length - 1;
 
         if (seg.kind === "episode") {
-          const roundedLeft = isFirst ? "rounded-l-lg" : "";
-          const roundedRight = isLast ? "rounded-r-lg" : "";
+          const leftStyle = `calc(${seg.startPct}% + ${isFirst ? 0 : HALF_GAP_PX}px)`;
+          const widthStyle = `calc(${seg.widthPct}% - ${(isFirst ? 0 : HALF_GAP_PX) + (isLast ? 0 : HALF_GAP_PX)}px)`;
+
+          if (!peaks) {
+            // No peaks yet (pending / fallback). Render a placeholder tile so
+            // the outline of the segment is still visible.
+            return (
+              <div
+                key={`ep-${i}`}
+                className={`absolute inset-y-0 border-2 border-black bg-fuchsia-300 ${isFirst ? "rounded-l-lg" : "rounded-l"} ${isLast ? "rounded-r-lg" : "rounded-r"}`}
+                style={{ left: leftStyle, width: widthStyle }}
+              />
+            );
+          }
+
+          const tileStartSec = (seg.startPct / 100) * duration;
+          const tileDurationSec = (seg.widthPct / 100) * duration;
 
           return (
-            <div
+            <EpisodeTile
               key={`ep-${i}`}
-              className={`absolute inset-y-0 ${roundedLeft} ${roundedRight}`}
-              style={{
-                left: `calc(${seg.startPct}% + ${isFirst ? 0 : HALF_GAP_PX}px)`,
-                width: `calc(${seg.widthPct}% - ${(isFirst ? 0 : HALF_GAP_PX) + (isLast ? 0 : HALF_GAP_PX)}px)`,
-              }}
+              peaks={peaks}
+              tileStartSec={tileStartSec}
+              tileDurationSec={tileDurationSec}
+              leftStyle={leftStyle}
+              widthStyle={widthStyle}
+              isFirst={isFirst}
+              isLast={isLast}
+              onSeekToGlobalTime={onSeekToGlobalTime}
             />
           );
         }
@@ -436,12 +591,48 @@ export default function WaveformTimeline() {
     };
   }, [episode.id, episode.waveformUrl]);
 
+  const [peaks, setPeaks] = useState<ParsedPeaks | null>(null);
+
+  // Fetch peaks for the ready path; each EpisodeTile slices this array into
+  // its own segment's time range and mounts an independent WaveSurfer.
   useEffect(() => {
-    if (init.kind !== "ready" && init.kind !== "fallback") return;
+    if (init.kind !== "ready") {
+      setPeaks(null);
+      return;
+    }
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const parsed = await fetchPeaks(init.waveformUrl, controller.signal);
+        if (controller.signal.aborted) return;
+        setPeaks(parsed);
+        setReadySourceUrl(episode.sourceUrl);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn(
+          "[Wave] peaks fetch failed, falling back to client decode",
+          error,
+        );
+        setPeaks(null);
+        setInit({ kind: "fallback" });
+      }
+    })();
+    return () => controller.abort();
+  }, [
+    init.kind,
+    init.kind === "ready" ? init.waveformUrl : null,
+    episode.sourceUrl,
+  ]);
+
+  // Fallback path for legacy episodes with no waveformUrl: spin up a single
+  // client-decoded WaveSurfer over the whole container. EpisodeTiles replace
+  // this for the peaks path.
+  useEffect(() => {
+    if (init.kind !== "fallback") return;
     const container = waveContainerRef.current;
     if (!container) return;
 
-    const baseOptions = {
+    const ws = WaveSurfer.create({
       container,
       height: WAVE_HEIGHT,
       waveColor: WAVE_BAR_COLOR,
@@ -458,73 +649,19 @@ export default function WaveformTimeline() {
       autoScroll: true,
       autoCenter: false,
       hideScrollbar: false,
-    };
+      url: episode.sourceUrl,
+      media: document.createElement("audio"),
+    });
 
-    let ws: WaveSurfer | null = null;
-    const controller = new AbortController();
-
-    function attach(instance: WaveSurfer) {
-      instance.on("ready", () => setReadySourceUrl(episode.sourceUrl));
-      instance.on("interaction", (nextTime: number) => seekRef.current(nextTime));
-      wsRef.current = instance;
-    }
-
-    function createWithClientDecode() {
-      return WaveSurfer.create({
-        ...baseOptions,
-        url: episode.sourceUrl,
-        media: document.createElement("audio"),
-      });
-    }
-
-    async function boot() {
-      if (init.kind === "ready") {
-        try {
-          const parsed = await fetchPeaks(init.waveformUrl, controller.signal);
-          if (controller.signal.aborted) return;
-
-          const audio = document.createElement("audio");
-          audio.src = episode.sourceUrl;
-          audio.preload = "metadata";
-
-          ws = WaveSurfer.create({
-            ...baseOptions,
-            peaks: [parsed.peaks],
-            duration: parsed.durationSec,
-            media: audio,
-          });
-        } catch (error) {
-          if (controller.signal.aborted) return;
-          console.warn(
-            "[Wave] peaks fetch failed, falling back to client decode",
-            error,
-          );
-          ws = createWithClientDecode();
-        }
-      } else {
-        ws = createWithClientDecode();
-      }
-
-      if (controller.signal.aborted) {
-        ws.destroy();
-        return;
-      }
-
-      attach(ws);
-    }
-
-    boot();
+    ws.on("ready", () => setReadySourceUrl(episode.sourceUrl));
+    ws.on("interaction", (nextTime: number) => seekRef.current(nextTime));
+    wsRef.current = ws;
 
     return () => {
-      controller.abort();
-      ws?.destroy();
+      ws.destroy();
       wsRef.current = null;
     };
-  }, [
-    episode.sourceUrl,
-    init.kind,
-    init.kind === "ready" ? init.waveformUrl : null,
-  ]);
+  }, [init.kind, episode.sourceUrl]);
 
   const handleZoomChange = useCallback((nextZoom: number) => {
     setZoom(clampZoom(nextZoom));
@@ -700,9 +837,11 @@ export default function WaveformTimeline() {
             <SegmentedTimeline
               duration={duration}
               segments={segments}
+              peaks={peaks}
               draggingMarkerId={draggingMarkerId}
               dragTimeSec={dragTimeSec}
               pendingPosition={pendingPosition}
+              onSeekToGlobalTime={seek}
               onAdPointerDown={handleAdPointerDown}
             />
 
@@ -722,10 +861,15 @@ export default function WaveformTimeline() {
                 </div>
               </div>
             )}
-            <div
-              ref={waveContainerRef}
-              className="relative z-10 h-full w-full"
-            />
+            {/* Fallback: legacy episodes with no waveformUrl get a single
+                WaveSurfer over the full container. EpisodeTiles replace this
+                for the peaks path. */}
+            {init.kind === "fallback" && (
+              <div
+                ref={waveContainerRef}
+                className="relative z-10 h-full w-full"
+              />
+            )}
           </div>
 
           <TimelineTicks duration={duration} ticks={ticks} miniTicks={miniTicks} />

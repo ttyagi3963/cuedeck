@@ -59,6 +59,38 @@ export function parsePeaksBuffer(arrayBuffer: ArrayBuffer): ParsedPeaks {
   };
 }
 
+/**
+ * Extract the subset of peaks that corresponds to a time range.
+ *
+ * Episode segments each render their own WaveSurfer over a slice of the
+ * episode's full peaks array. Given a [startSec, endSec] window and the
+ * episode's parsed peaks, this returns a Float32Array containing only the
+ * peaks in that window, proportional to the total duration.
+ *
+ * Handles edge cases: zero-duration peaks, zero-length range, out-of-range
+ * inputs (clamped to [0, peaks.length]), inverted ranges (returns empty).
+ */
+export function slicePeaks(
+  peaks: ParsedPeaks,
+  startSec: number,
+  endSec: number,
+): Float32Array {
+  if (peaks.durationSec <= 0) return new Float32Array();
+  if (endSec <= startSec) return new Float32Array();
+
+  const total = peaks.peaks.length;
+  const startIdx = Math.max(
+    0,
+    Math.floor((startSec / peaks.durationSec) * total),
+  );
+  const endIdx = Math.min(
+    total,
+    Math.ceil((endSec / peaks.durationSec) * total),
+  );
+  if (endIdx <= startIdx) return new Float32Array();
+  return peaks.peaks.slice(startIdx, endIdx);
+}
+
 export async function fetchPeaks(
   url: string,
   signal?: AbortSignal,
